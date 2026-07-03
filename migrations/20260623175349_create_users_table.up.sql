@@ -1,24 +1,23 @@
 CREATE TABLE users (
 
-    id BIGSERIAL PRIMARY KEY,
+    id uuid PRIMARY KEY,
 
-    full_name VARCHAR NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
 
-    email VARCHAR UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
 
     phone_number VARCHAR(30) NOT NULL,
 
     date_birthday DATE NOT NULL,
 
-    serial_passport VARCHAR NOT NULL,
+    passport UNIQUE VARCHAR(12) NOT NULL,
 
-    number_passport VARCHAR NOT NULL,
+    password VARCHAR(256) NOT NULL,
 
-    history_operation TEXT,
+    role UNIQUE VARCHAR(15) NOT NULL,
 
-    history_refund TEXT,
+    is_banned BOOLEAN NOT NULL DEFAULT FALSE
 
-    history_moving TEXT
 
 );
 
