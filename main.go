@@ -1,10 +1,12 @@
 package main
 
 import (
-	"arch/internal/config"
+	// "arch/internal/cache"
 	"arch/internal/db"
 	"arch/internal/handler"
+	"arch/internal/repository"
 	"arch/internal/server"
+	"arch/internal/services"
 	"context"
 	"errors"
 	"fmt"
@@ -15,31 +17,44 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/patrickmn/go-cache"
 )
 
 func main() {
 
-	err := config.LoadConfig()
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error loading .env file: ", err)
 	}
 
 	gormDB, err := db.ConnectDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close(gormDB)
+
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer sqlDB.Close()
 
 	if err := db.Migrate(); err != nil {
 		log.Fatal(err)
 	}
 
-	router := chi.NewRouter()
+	cacheUser := cache.New(5*time.Minute, 10*time.Minute)
 
-	router.Get("/ping", handler.Ping)
+	userRepo := &repository.UserRepo{DB: gormDB, Cache: cacheUser}
+	userService := &services.UserService{UserRep: userRepo}
+	userHandler := &handler.UserHandler{UserServices: userService}
 
-	srv := server.NewServer("8080", router)
+	r := chi.NewRouter()
+	userHandler.RegisterRoutes(r)
+
+	srv := server.NewServer("8080", r)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
