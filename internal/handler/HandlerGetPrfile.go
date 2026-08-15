@@ -2,22 +2,50 @@ package handler
 
 import (
 	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/middleware"
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
 
-func (u *UserHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req resreqstruct.GetPrfileRequest
+	start := time.Now()
 
-	err := json.NewDecoder(r.Body).Decode(&req)
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		slog.Error("error receiving the ID",
+			"error", err.Error())
+		http.Error(w, "invalid user id", http.StatusBadRequest)
 		return
 	}
 
-	user, err := u.UserServices.GetProfile(r.Context(), req.ID)
+	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !middleware.VerificationRole(userRole, userID, id.String()) {
+		http.Error(w, "access is denied", http.StatusForbidden)
+		return
+	}
+
+	user, err := u.UserServices.GetProfile(r.Context(), id)
 	if err != nil {
+		slog.Error("error receiving the user during the request",
+			"error", err.Error())
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -32,8 +60,11 @@ func (u *UserHandler) GetProfileHandler(w http.ResponseWriter, r *http.Request) 
 		Country:      user.Country,
 	}
 
-	w.Header().Set("Content-type", "application-json")
+	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
+	slog.Info("the user was successfully received upon request",
+		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

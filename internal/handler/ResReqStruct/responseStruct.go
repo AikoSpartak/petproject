@@ -11,13 +11,14 @@ type ResponseRegister struct {
 type LoginResponse struct {
 	Uuid  string `json:"uuid"`
 	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 type GetPrfileResponse struct {
 	Uuid         string `json:"uuid"`
 	Email        string `json:"email"`
 	FullName     string `json:"fullname"`
-	PhoneNumber  string `json:"phonenumber"`
+	PhoneNumber  string `json:"phone_number"`
 	DateBirthday uint   `json:"datebirthday"`
 	Role         string `json:"role"`
 	Country      string `json:"country"`

@@ -2,27 +2,28 @@ package main
 
 import (
 	// "arch/internal/cache"
+	"arch/internal/app"
 	"arch/internal/db"
-	"arch/internal/handler"
-	"arch/internal/repository"
+	"arch/internal/logger"
 	"arch/internal/server"
-	"arch/internal/services"
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/patrickmn/go-cache"
 )
 
 func main() {
+
+	logger.InitLogger()
 
 	err := godotenv.Load()
 	if err != nil {
@@ -47,14 +48,8 @@ func main() {
 
 	cacheUser := cache.New(5*time.Minute, 10*time.Minute)
 
-	userRepo := &repository.UserRepo{DB: gormDB, Cache: cacheUser}
-	userService := &services.UserService{UserRep: userRepo}
-	userHandler := &handler.UserHandler{UserServices: userService}
-
-	r := chi.NewRouter()
-	userHandler.RegisterRoutes(r)
-
-	srv := server.NewServer("8080", r)
+	r := app.AppService(gormDB, cacheUser)
+	srv := server.NewServer("8080", r.Router)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -67,7 +62,11 @@ func main() {
 
 	<-ctx.Done()
 
-	shutDownCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	slog.Info("получен сигнал о щавершинии")
+
+	stop()
+
+	shutDownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := srv.HttpServer.Shutdown(shutDownCtx); err != nil {
