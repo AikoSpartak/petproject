@@ -5,7 +5,7 @@ import "github.com/google/uuid"
 type RegisterRequest struct {
 	Email        string `json:"email"`
 	Password     string `json:"password"`
-	PhoneNumber  string `json:"phonenumber"`
+	PhoneNumber  string `json:"phone_number"`
 	DateBirthday string `json:"datebirthday"`
 	Passport     string `json:"passport"`
 	Country      string `json:"country"`

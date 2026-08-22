@@ -42,11 +42,11 @@ func hashPassword(password string) (string, error) {
 }
 
 func validateNumber(number string) error {
-	if number == "" || len(number) < 10 {
+	if number == "" || len(number) < 11 {
 		return ErrorsPhone
 	}
 
-	res, err := phonenumbers.Parse(number, "")
+	res, err := phonenumbers.Parse(number, "RU")
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,11 @@ package handler
 
 import (
 	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/middleware"
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -11,10 +14,13 @@ import (
 
 func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Request) {
 
+	start := time.Now()
 	var req resreqstruct.ChangePasswordRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
+		slog.Error("parsing error",
+			"error", err.Error())
 		http.Error(w, "invalid request email", http.StatusBadRequest)
 		return
 	}
@@ -22,12 +28,33 @@ func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Reque
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
+		slog.Error("error getting the id during the request",
+			"error", err.Error())
 		http.Error(w, "invalid user id", http.StatusBadRequest)
+		return
+	}
+
+	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorezed", http.StatusUnauthorized)
+		return
+	}
+
+	userId, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !middleware.VerificationRole(userRole, userId, id.String()) {
+		http.Error(w, "access in denied", http.StatusForbidden)
 		return
 	}
 
 	err = u.UserServices.ChangePassword(r.Context(), id, req.OldPassword, req.NewPassword)
 	if err != nil {
+		slog.Error("error receiving the password when requesting",
+			"error", err.Error())
 		http.Error(w, "Failed to update password", http.StatusNotFound)
 		return
 	}
@@ -39,5 +66,12 @@ func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Reque
 		Message: "password changed successfully",
 	}
 
-	json.NewEncoder(w).Encode(response)
+	slog.Info("successful password change request",
+		"time", time.Since(start).Milliseconds())
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

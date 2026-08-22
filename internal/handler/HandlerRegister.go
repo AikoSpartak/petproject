@@ -2,9 +2,13 @@ package handler
 
 import (
 	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/middleware"
 	"arch/internal/services"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 )
@@ -14,24 +18,35 @@ type UserHandler struct {
 }
 
 func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
+	r.Use(middleware.Recovery)
+
 	r.Post("/register", u.RegisterHandler)
 	r.Post("/login", u.LoginHandler)
-	r.Get("/users/{id}", u.GetProfileHandler)
-	r.Put("/users/{id}", u.UpdateProfileHandler)
-	r.Put("/users/{id}/email", u.ChangeEmailHandler)
-	r.Put("/users/{id}/password", u.HandlerChangePassword)
-	r.Delete("/users/{id}", u.DeleteHandler)
+
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Auth)
+		r.Get("/users/{id}", u.GetUserHandler)
+		r.Put("/users/{id}", u.UpdateProfileHandler)
+		r.Put("/users/{id}/email", u.ChangeEmailHandler)
+		r.Put("/users/{id}/password", u.HandlerChangePassword)
+		r.Delete("/users/{id}", u.DeleteHandler)
+	})
 }
 
 func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req resreqstruct.RegisterRequest
+	start := time.Now()
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
+		slog.Error("parsing error during registration",
+			"error", err.Error())
 		http.Error(w, "invalid register", http.StatusBadRequest)
 		return
 	}
+
+	fmt.Printf("%+v\n", req)
 
 	user, err := u.UserServices.RegisterUser(r.Context(),
 		req.Email,
@@ -53,6 +68,9 @@ func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
+	slog.Info("registration was successful",
+		"time", time.Since(start).Microseconds())
 
 	err = json.NewEncoder(w).Encode(respnose)
 	if err != nil {
