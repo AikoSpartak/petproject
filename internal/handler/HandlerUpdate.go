@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -16,7 +15,6 @@ import (
 func (u *UserHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req resreqstruct.UpdateProfileRequest
-	start := time.Now()
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -70,9 +68,6 @@ func (u *UserHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Reques
 		PhoneNumber: user.PhoneNumber,
 		Country:     user.Country,
 	}
-
-	slog.Info("the user has been updated",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

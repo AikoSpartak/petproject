@@ -18,7 +18,7 @@ type GetPrfileResponse struct {
 	Uuid         string `json:"uuid"`
 	Email        string `json:"email"`
 	FullName     string `json:"fullname"`
-	PhoneNumber  string `json:"phone_number"`
+	PhoneNumber  string `json:"phonenumber"`
 	DateBirthday uint   `json:"datebirthday"`
 	Role         string `json:"role"`
 	Country      string `json:"country"`
@@ -28,7 +28,7 @@ type UpdateProfileResponse struct {
 	Uuid        uuid.UUID `json:"id"`
 	FullName    string    `json:"full_name"`
 	Email       string    `json:"email"`
-	PhoneNumber string    `json:"phone_number"`
+	PhoneNumber string    `json:"phonenumber"`
 	Country     string    `json:"country"`
 }
 

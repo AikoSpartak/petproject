@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 )
 
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req resreqstruct.LoginRequest
-	start := time.Now()
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -40,9 +38,6 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	slog.Info("successful authorization",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

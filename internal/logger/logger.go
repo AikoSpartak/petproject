@@ -11,5 +11,12 @@ func InitLogger() {
 		Level: slog.LevelDebug,
 	})
 
-	slog.SetDefault(slog.New(l))
+	logger := slog.New(l).With(
+		slog.Group("metadata",
+			slog.String("app", os.Getenv("APP")),
+			slog.String("host", os.Getenv("DOMAIN"))),
+		slog.String("replica", os.Getenv("REPLICA")),
+	)
+
+	slog.SetDefault(logger)
 }

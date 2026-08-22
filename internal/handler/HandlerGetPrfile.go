@@ -6,15 +6,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 
 func (u *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-
-	start := time.Now()
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -62,9 +59,6 @@ func (u *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	slog.Info("the user was successfully received upon request",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

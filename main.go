@@ -23,12 +23,12 @@ import (
 
 func main() {
 
-	logger.InitLogger()
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file: ", err)
 	}
+
+	logger.InitLogger()
 
 	gormDB, err := db.ConnectDB()
 	if err != nil {

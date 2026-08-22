@@ -6,15 +6,12 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 
 func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
-
-	start := time.Now()
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -53,9 +50,6 @@ func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	response := resreqstruct.DeleteResponse{
 		Message: "account deleted successfully",
 	}
-
-	slog.Info("the user was successfully deleted during the request",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

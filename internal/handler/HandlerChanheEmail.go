@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -15,7 +14,6 @@ import (
 func (u *UserHandler) ChangeEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req resreqstruct.ChangeEmailRequest
-	start := time.Now()
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -66,9 +64,6 @@ func (u *UserHandler) ChangeEmailHandler(w http.ResponseWriter, r *http.Request)
 		Uuid:  user.Uuid,
 		Email: user.Email,
 	}
-
-	slog.Info("successful email change request when requested",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

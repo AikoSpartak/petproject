@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -14,7 +13,6 @@ import (
 
 func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Request) {
 
-	start := time.Now()
 	var req resreqstruct.ChangePasswordRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -65,9 +63,6 @@ func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Reque
 	response := resreqstruct.ChangePasswordResponse{
 		Message: "password changed successfully",
 	}
-
-	slog.Info("successful password change request",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

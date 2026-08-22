@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 )
@@ -18,7 +17,6 @@ type UserHandler struct {
 }
 
 func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
-	r.Use(middleware.Recovery)
 
 	r.Post("/register", u.RegisterHandler)
 	r.Post("/login", u.LoginHandler)
@@ -36,7 +34,6 @@ func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
 func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req resreqstruct.RegisterRequest
-	start := time.Now()
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -68,9 +65,6 @@ func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	slog.Info("registration was successful",
-		"time", time.Since(start).Microseconds())
 
 	err = json.NewEncoder(w).Encode(respnose)
 	if err != nil {
