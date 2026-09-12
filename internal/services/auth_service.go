@@ -16,16 +16,24 @@ type JWTClaims struct {
 }
 
 func getJWT() ([]byte, error) {
-	key := os.Getenv("JWT_Key")
-	if key == "" {
+	key, ok := os.LookupEnv("JWT_Key")
+	if !ok {
 		return nil, fmt.Errorf("invalid secret key")
 	}
 
 	return []byte(key), nil
 }
 
-// добавить рефрештокен. Если пользователь сменил пароль.
-func GenerateToken(userID, role string) (string, error) {
+func getRefreshToken() ([]byte, error) {
+
+	key, ok := os.LookupEnv("REFRESH_KEY")
+	if !ok {
+		return nil, fmt.Errorf("invalid secret key")
+	}
+	return []byte(key), nil
+}
+
+func GenerateAccessToken(userID, role string) (string, error) {
 
 	secretKey, err := getJWT()
 	if err != nil {
@@ -49,18 +57,6 @@ func GenerateToken(userID, role string) (string, error) {
 	}
 
 	return tokenString, nil
-}
-
-func GenerateRefreshToken(userID string, secretKey []byte) (string, error) {
-
-	claims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * 24 * time.Hour)),
-		Subject:   "refresh",
-		ID:        userID,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString(secretKey)
 }
 
 func ValidateToken(tokenString string) (*JWTClaims, error) {
@@ -89,4 +85,23 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 	}
 
 	return claims, nil
+}
+
+
+
+func GenerateRefreshToken(userID string) (string, error) {
+
+	refreshToken, err := getRefreshToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to get JWT")
+	}
+
+	claims := jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * 24 * time.Hour)),
+		Subject:   "refresh",
+		ID:        userID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString(refreshToken)
 }

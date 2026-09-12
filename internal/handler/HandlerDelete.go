@@ -1,8 +1,9 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -22,23 +23,17 @@ func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userId, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	if !middleware.VerificationRole(userRole, userId, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access is denied", http.StatusForbidden)
 	}
 
-	err = u.UserServices.DeleteAccount(r.Context(), id)
+	err = u.UserServices.DeleteAccountUser(r.Context(), id)
 	if err != nil {
 		http.Error(w, "failed to delete account", http.StatusNotFound)
 		return
@@ -47,7 +42,7 @@ func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := resreqstruct.DeleteResponse{
+	response := ResponseStruct.DeleteResponse{
 		Message: "account deleted successfully",
 	}
 

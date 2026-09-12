@@ -19,6 +19,8 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, user *models.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error)
+	SaveRefreshToken(ctx context.Context, token *models.RefreshToken) error
+	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
 }
 
 type UserRepo struct {
@@ -27,6 +29,7 @@ type UserRepo struct {
 }
 
 const ttl = 5 * time.Minute
+const maxLimit = 50
 
 func (u *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
 
@@ -61,10 +64,16 @@ func (u *UserRepo) GetByUserId(ctx context.Context, id uuid.UUID) (*models.User,
 	return &user, nil
 }
 
-// добавить лимит, офсет, ордербай и where
 func (u *UserRepo) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error) {
 
-	//добавить лимит, офсет, ордербай и where
+	if limit <= 0 || limit > 50 {
+		limit = maxLimit
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
 	key := fmt.Sprintf("users:all:active:%v:limit:%d:offset:%d:orderBy:%s", active, limit, offset, orderBy)
 
 	if val, found := u.Cache.Get(key); found {
@@ -77,18 +86,10 @@ func (u *UserRepo) GetAllUsers(ctx context.Context, active bool, limit, offset i
 	if active {
 		query = query.Where("active = ?", true)
 	}
-
-	if orderBy != "" {
-		query = query.Order(orderBy)
-	}
-
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
-
-	if offset > 0 {
-		query = query.Offset(offset)
-	}
+	query = query.
+		Order(orderBy).
+		Limit(limit).
+		Offset(offset)
 
 	if err := query.Find(&users).Error; err != nil {
 		slog.Error("couldn't find the user in db",
@@ -155,5 +156,22 @@ func (u *UserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 	u.Cache.Delete("user:all:*")
 
+	return nil
+}
+
+func (u *UserRepo) SaveRefreshToken(ctx context.Context, token *models.RefreshToken) error {
+	if err := u.DB.WithContext(ctx).Create(token).Error; err != nil {
+		slog.Error("Error saving token",
+			"token", token)
+	}
+	return nil
+}
+
+func (u *UserRepo) DeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
+	if err := u.DB.WithContext(ctx).Where("token = ?", id).Delete(&models.RefreshToken{}).Error; err != nil {
+		slog.Error("Error delete token",
+			"id", id,
+			"error", err)
+	}
 	return nil
 }

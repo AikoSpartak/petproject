@@ -1,4 +1,4 @@
-package resreqstruct
+package RequestStruct
 
 import "github.com/google/uuid"
 

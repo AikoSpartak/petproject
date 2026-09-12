@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+//go:generate mockgen -source=user_services.go -destination=mocks/mock.go
 
 var (
 	ErrorSenEmail   = errors.New("email format error")
@@ -24,12 +27,12 @@ var (
 
 type UserSrvices interface {
 	RegisterUser(ctx context.Context, login, password, phone, datebirthday, passport, country string) (*models.User, error)
-	LoginUser(ctx context.Context, login, password string) (*models.User, error)
-	GetProfile(ctx context.Context, id uuid.UUID) (*models.User, error)
-	UpdateProfile(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
-	ChangeEmail(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
-	ChangePassword(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
-	DeleteAccount(ctx context.Context, id uuid.UUID) error
+	LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error)
+	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
+	UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
+	ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
+	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
+	DeleteAccountUser(ctx context.Context, id uuid.UUID) error
 }
 
 type UserService struct {
@@ -94,14 +97,14 @@ func (u *UserService) RegisterUser(ctx context.Context, login, password, phone, 
 
 }
 
-func (u *UserService) LoginUser(ctx context.Context, login, password string) (string, *models.User, error) {
+func (u *UserService) LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error) {
 
 	user, err := u.UserRep.GetByEmail(ctx, login)
 	if err != nil {
 		slog.Warn("couldn't get the user",
 			"email", login,
 			"err", err.Error())
-		return "", nil, fmt.Errorf("invalid username")
+		return "", "", nil, fmt.Errorf("invalid username")
 	}
 
 	err = bcrypt.CompareHashAndPassword(
@@ -113,10 +116,10 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 		slog.Error("invalid password",
 			"email", login,
 			"error", err.Error())
-		return "", nil, fmt.Errorf("invalid password")
+		return "", "", nil, fmt.Errorf("invalid password")
 	}
 
-	token, err := GenerateToken(
+	accessToken, err := GenerateAccessToken(
 		user.Uuid.String(),
 		user.Role,
 	)
@@ -125,13 +128,37 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 			"email", login,
 			"error", err.Error(),
 		)
-		return "", nil, err
+		return "", "", nil, err
 	}
 
-	return token, user, nil
+	refreshtoken, err := GenerateRefreshToken(
+		user.Uuid.String(),
+	)
+	if err != nil {
+		slog.Error("failed to generate jwt",
+			"email", login,
+			"error", err.Error(),
+		)
+		return "", "", nil, err
+	}
+
+	refreshTokenModel := &models.RefreshToken{
+		ID:        uuid.New(),
+		UserID:    user.Uuid,
+		Token:     refreshtoken,
+		ExpiresAt: time.Now().Add(3 * 24 * time.Hour),
+	}
+
+	if err := u.UserRep.SaveRefreshToken(ctx, refreshTokenModel); err != nil {
+		slog.Error("failed to save refresh token",
+			"user_id", user.Uuid,
+			"error", err.Error())
+	}
+
+	return accessToken, refreshtoken, user, nil
 }
 
-func (u *UserService) GetProfile(ctx context.Context, id uuid.UUID) (*models.User, error) {
+func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, error) {
 
 	user, err := u.UserRep.GetByUserId(ctx, id)
 	if err != nil {
@@ -144,7 +171,7 @@ func (u *UserService) GetProfile(ctx context.Context, id uuid.UUID) (*models.Use
 	return user, nil
 }
 
-func (u *UserService) UpdateProfile(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
+func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
 
 	user, err := u.UserRep.GetByUserId(ctx, id)
 	if err != nil {
@@ -162,7 +189,7 @@ func (u *UserService) UpdateProfile(ctx context.Context, id uuid.UUID, name, pho
 	return user, nil
 }
 
-func (u *UserService) ChangeEmail(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error) {
+func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error) {
 
 	err := emailValidate(newEmail)
 	if err != nil {
@@ -205,7 +232,7 @@ func (u *UserService) ChangeEmail(ctx context.Context, id uuid.UUID, newEmail st
 
 }
 
-func (u *UserService) ChangePassword(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
+func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
 
 	user, err := u.UserRep.GetByUserId(ctx, id)
 	if err != nil {
@@ -233,11 +260,28 @@ func (u *UserService) ChangePassword(ctx context.Context, id uuid.UUID, oldPassw
 
 	user.Password = hashPass
 
+	u.UserRep.DeleteRefreshToken(ctx, id)
+
+	refreshTokenString, err := GenerateRefreshToken(id.String())
+	if err != nil {
+		slog.Error("Token error when changing password",
+			"error", err)
+	}
+
+	newRefreshtoken := &models.RefreshToken{
+		ID:        uuid.New(),
+		UserID:    user.Uuid,
+		Token:     refreshTokenString,
+		ExpiresAt: time.Now().Add(3 * 24 * time.Hour),
+	}
+
+	u.UserRep.SaveRefreshToken(ctx, newRefreshtoken)
+
 	return nil
 
 }
 
-func (u *UserService) DeleteAccount(ctx context.Context, id uuid.UUID) error {
+func (u *UserService) DeleteAccountUser(ctx context.Context, id uuid.UUID) error {
 
 	user, err := u.UserRep.GetByUserId(ctx, id)
 	if err != nil {

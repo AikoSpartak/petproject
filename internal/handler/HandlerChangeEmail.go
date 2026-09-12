@@ -1,8 +1,10 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -11,9 +13,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func (u *UserHandler) ChangeEmailHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) ChangeUserEmailHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req resreqstruct.ChangeEmailRequest
+	var req RequestStruct.ChangeEmailRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -32,24 +34,18 @@ func (u *UserHandler) ChangeEmailHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorezed", http.StatusUnauthorized)
-		return
-	}
-
-	userId, ok := middleware.UserIDFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if !middleware.VerificationRole(userRole, userId, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access in denied", http.StatusForbidden)
 		return
 	}
 
-	user, err := u.UserServices.ChangeEmail(r.Context(), id, req.Email)
+	user, err := u.UserServices.ChangeEmailUser(r.Context(), id, req.Email)
 	if err != nil {
 		slog.Error("mail change error when requesting",
 			"error", err.Error())
@@ -60,7 +56,7 @@ func (u *UserHandler) ChangeEmailHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-type", "json-application")
 	w.WriteHeader(http.StatusOK)
 
-	response := resreqstruct.ChangeEmailResponse{
+	response := ResponseStruct.ChangeEmailResponse{
 		Uuid:  user.Uuid,
 		Email: user.Email,
 	}

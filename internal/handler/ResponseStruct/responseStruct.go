@@ -1,4 +1,4 @@
-package resreqstruct
+package ResponseStruct
 
 import "github.com/google/uuid"
 
@@ -9,9 +9,10 @@ type ResponseRegister struct {
 }
 
 type LoginResponse struct {
-	Uuid  string `json:"uuid"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	Uuid         string `json:"uuid"`
+	Email        string `json:"email"`
+	AccessToken  string `json:"accesstoken"`
+	RefreshToken string `json:"refreshtoken"`
 }
 
 type GetPrfileResponse struct {

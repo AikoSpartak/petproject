@@ -1,8 +1,11 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
+
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -12,9 +15,9 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func (u *UserHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) UpdateUsereHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req resreqstruct.UpdateProfileRequest
+	var req RequestStruct.UpdateProfileRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -33,24 +36,18 @@ func (u *UserHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userId, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	if !middleware.VerificationRole(userRole, userId, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access is denied", http.StatusForbidden)
 		return
 	}
 
-	user, err := u.UserServices.UpdateProfile(r.Context(), id, req.Name, req.Phone)
+	user, err := u.UserServices.UpdateUser(r.Context(), id, req.Name, req.Phone)
 	if err != nil {
 		slog.Error("error updating the user during the request",
 			"error", err.Error())
@@ -61,7 +58,7 @@ func (u *UserHandler) UpdateProfileHandler(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := resreqstruct.UpdateProfileResponse{
+	response := ResponseStruct.UpdateProfileResponse{
 		Uuid:        user.Uuid,
 		FullName:    user.FullName,
 		Email:       user.Email,

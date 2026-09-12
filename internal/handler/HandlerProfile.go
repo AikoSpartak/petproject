@@ -1,8 +1,9 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -22,24 +23,18 @@ func (u *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userID, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	if !middleware.VerificationRole(userRole, userID, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access is denied", http.StatusForbidden)
 		return
 	}
 
-	user, err := u.UserServices.GetProfile(r.Context(), id)
+	user, err := u.UserServices.GetUser(r.Context(), id)
 	if err != nil {
 		slog.Error("error receiving the user during the request",
 			"error", err.Error())
@@ -47,7 +42,7 @@ func (u *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := resreqstruct.GetPrfileResponse{
+	response := ResponseStruct.GetPrfileResponse{
 		Uuid:         user.Uuid.String(),
 		Email:        user.Email,
 		FullName:     user.FullName,

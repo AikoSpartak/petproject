@@ -1,7 +1,8 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
 	"arch/internal/services"
 	"encoding/json"
@@ -13,27 +14,27 @@ import (
 )
 
 type UserHandler struct {
-	UserServices *services.UserService
+	UserServices services.UserSrvices
 }
 
 func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
 
-	r.Post("/register", u.RegisterHandler)
+	r.Post("/register", u.RegisterUserHandler)
 	r.Post("/login", u.LoginHandler)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth)
 		r.Get("/users/{id}", u.GetUserHandler)
-		r.Put("/users/{id}", u.UpdateProfileHandler)
-		r.Put("/users/{id}/email", u.ChangeEmailHandler)
-		r.Put("/users/{id}/password", u.HandlerChangePassword)
-		r.Delete("/users/{id}", u.DeleteHandler)
+		r.Put("/users/{id}", u.UpdateUsereHandler)
+		r.Put("/users/{id}/email", u.ChangeUserEmailHandler)
+		r.Put("/users/{id}/password", u.ChangeUserPasswordHandler)
+		r.Delete("/users/{id}", u.DeleteUserHandler)
 	})
 }
 
-func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req resreqstruct.RegisterRequest
+	var req RequestStruct.RegisterRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -53,11 +54,11 @@ func (u *UserHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		req.Passport,
 		req.Country)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	respnose := resreqstruct.ResponseRegister{
+	respnose := ResponseStruct.ResponseRegister{
 		Uuid:        user.Uuid,
 		Email:       user.Email,
 		PhoneNumber: user.PhoneNumber,
