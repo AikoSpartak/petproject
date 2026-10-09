@@ -17,6 +17,7 @@ type JWTClaims struct {
 
 func getJWT() ([]byte, error) {
 	key, ok := os.LookupEnv("JWT_Key")
+
 	if !ok {
 		return nil, fmt.Errorf("invalid secret key")
 	}
@@ -26,7 +27,7 @@ func getJWT() ([]byte, error) {
 
 func getRefreshToken() ([]byte, error) {
 
-	key, ok := os.LookupEnv("REFRESH_KEY")
+	key, ok := os.LookupEnv("REFRESH_TOKEN")
 	if !ok {
 		return nil, fmt.Errorf("invalid secret key")
 	}
@@ -44,7 +45,7 @@ func GenerateAccessToken(userID, role string) (string, error) {
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * 24 * time.Hour)),
 			Subject:   "access",
 		},
 	}
@@ -87,21 +88,21 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 	return claims, nil
 }
 
-
-
-func GenerateRefreshToken(userID string) (string, error) {
-
-	refreshToken, err := getRefreshToken()
+func GenerateRefreshToken(userID, role string) (string, error) {
+	secretKey, err := getRefreshToken()
 	if err != nil {
-		return "", fmt.Errorf("failed to get JWT")
+		return "", fmt.Errorf("failed to get refresh key: %w", err)
 	}
 
-	claims := jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * 24 * time.Hour)),
-		Subject:   "refresh",
-		ID:        userID,
+	claims := JWTClaims{
+		UserID: userID,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * 24 * time.Hour)),
+			Subject:   "refresh",
+		},
 	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString(refreshToken)
+	return token.SignedString(secretKey)
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"arch/internal/handler/RequestStruct"
 	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
 	"arch/internal/models"
@@ -13,6 +14,16 @@ import (
 )
 
 func (u *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+
+	var req RequestStruct.DeleteUserRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		slog.Error("mail parsing error when requesting",
+			"error", err.Error())
+		http.Error(w, "invalid request id", http.StatusBadRequest)
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -31,6 +42,7 @@ func (u *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 
 	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access is denied", http.StatusForbidden)
+		return
 	}
 
 	err = u.UserServices.DeleteAccountUser(r.Context(), id)

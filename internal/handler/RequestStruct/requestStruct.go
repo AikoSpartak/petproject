@@ -1,18 +1,22 @@
 package RequestStruct
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type RegisterRequest struct {
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	PhoneNumber  string `json:"phonenumber"`
-	DateBirthday string `json:"datebirthday"`
-	Passport     string `json:"passport"`
-	Country      string `json:"country"`
+	Email        string    `json:"email"`
+	Password     string    `json:"password"`
+	PhoneNumber  string    `json:"phonenumber"`
+	DateBirthday time.Time `json:"datebirthday"`
+	Passport     string    `json:"passport"`
+	Country      string    `json:"country"`
 }
 
 type LoginRequest struct {
-	Login    string `json:"login"`
+	Login    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -32,4 +36,8 @@ type ChangeEmailRequest struct {
 type ChangePasswordRequest struct {
 	OldPassword string `json:"oldpassword"`
 	NewPassword string `json:"newpassword"`
+}
+
+type DeleteUserRequest struct {
+	Email string `json:"email"`
 }

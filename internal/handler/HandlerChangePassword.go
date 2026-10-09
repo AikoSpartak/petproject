@@ -45,7 +45,7 @@ func (u *UserHandler) ChangeUserPasswordHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = u.UserServices.ChangePasswordUser(r.Context(), id, req.OldPassword, req.NewPassword)
+	_, _, err = u.UserServices.ChangePasswordUser(r.Context(), id, req.OldPassword, req.NewPassword)
 	if err != nil {
 		slog.Error("error receiving the password when requesting",
 			"error", err.Error())

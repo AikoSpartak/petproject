@@ -26,12 +26,12 @@ var (
 )
 
 type UserSrvices interface {
-	RegisterUser(ctx context.Context, login, password, phone, datebirthday, passport, country string) (*models.User, error)
+	RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error)
 	LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error)
 	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
 	ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
-	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
+	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) (string, string, error)
 	DeleteAccountUser(ctx context.Context, id uuid.UUID) error
 }
 
@@ -39,7 +39,7 @@ type UserService struct {
 	UserRep repository.UserRepository
 }
 
-func (u *UserService) RegisterUser(ctx context.Context, login, password, phone, datebirthday, passport, country string) (*models.User, error) {
+func (u *UserService) RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error) {
 
 	err := emailValidate(login)
 	if err != nil {
@@ -65,32 +65,22 @@ func (u *UserService) RegisterUser(ctx context.Context, login, password, phone, 
 		return nil, err
 	}
 
-	findEmail, err := u.UserRep.GetByEmail(ctx, login)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
-		slog.Error("couldn't get the user",
-			"email", login,
-			"error", err.Error())
-		return nil, fmt.Errorf("the user was not found")
-	}
-
-	if findEmail != nil {
-		slog.Warn("user already exists",
-			"email", login)
-		return nil, fmt.Errorf("the user already exists")
-	}
-
 	user := &models.User{
-		Uuid:        uuid.New(),
-		Email:       login,
-		Password:    hashPass,
-		PhoneNumber: phone,
+		Uuid:         uuid.New(),
+		Email:        login,
+		Password:     hashPass,
+		PhoneNumber:  phone,
+		DateBirthday: datebirthday,
+		Passport:     passport,
+		Country:      country,
+		Role:         "admin",
 	}
 
 	if err := u.UserRep.CreateUser(ctx, user); err != nil {
 		slog.Error("failed couldn't add user",
 			"email", login,
 			"error", err.Error())
-		return nil, fmt.Errorf("failed to create user")
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return user, nil
@@ -104,6 +94,11 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 		slog.Warn("couldn't get the user",
 			"email", login,
 			"err", err.Error())
+		return "", "", nil, fmt.Errorf("invalid username")
+	}
+
+	if user == nil {
+		slog.Warn("user not found", "email", login)
 		return "", "", nil, fmt.Errorf("invalid username")
 	}
 
@@ -130,9 +125,9 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 		)
 		return "", "", nil, err
 	}
-
 	refreshtoken, err := GenerateRefreshToken(
 		user.Uuid.String(),
+		user.Role,
 	)
 	if err != nil {
 		slog.Error("failed to generate jwt",
@@ -142,18 +137,11 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 		return "", "", nil, err
 	}
 
-	refreshTokenModel := &models.RefreshToken{
-		ID:        uuid.New(),
-		UserID:    user.Uuid,
-		Token:     refreshtoken,
-		ExpiresAt: time.Now().Add(3 * 24 * time.Hour),
-	}
+	u.UserRep.DeleteAccessToken(user.Uuid)
+	u.UserRep.DeleteRefreshToken(user.Uuid)
 
-	if err := u.UserRep.SaveRefreshToken(ctx, refreshTokenModel); err != nil {
-		slog.Error("failed to save refresh token",
-			"user_id", user.Uuid,
-			"error", err.Error())
-	}
+	u.UserRep.SaveAccessToken(user.Uuid, accessToken)
+	u.UserRep.SaveRefreshToken(user.Uuid, refreshtoken)
 
 	return accessToken, refreshtoken, user, nil
 }
@@ -166,6 +154,11 @@ func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, 
 			"id", id,
 			"error", err.Error())
 		return nil, err
+	}
+
+	if user == nil {
+		slog.Warn("user not found", "id", id)
+		return nil, ErrUserNotFound
 	}
 
 	return user, nil
@@ -181,10 +174,22 @@ func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone 
 		return nil, ErrUserNotFound
 	}
 
+	if user == nil {
+		slog.Warn("user not found",
+			"id", id)
+		return nil, ErrUserNotFound
+	}
+
 	user.FullName = name
 	user.PhoneNumber = phone
 
-	u.UserRep.UpdateUser(ctx, user)
+	err = u.UserRep.UpdateUser(ctx, user)
+	if err != nil {
+		slog.Error("couldn't update user",
+			"id", id,
+			"error", err.Error())
+		return nil, err
+	}
 
 	return user, nil
 }
@@ -207,7 +212,7 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 	}
 
 	if user != nil && user.Uuid != id {
-		return nil, err
+		return nil, errors.New("email error")
 	}
 
 	userEmail, err := u.UserRep.GetByUserId(ctx, id)
@@ -216,6 +221,11 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 			"id", id,
 			"error", err.Error())
 		return nil, err
+	}
+
+	if userEmail == nil {
+		slog.Warn("user not found", "id", id)
+		return nil, ErrUserNotFound
 	}
 
 	userEmail.Email = newEmail
@@ -232,14 +242,19 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 
 }
 
-func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
+func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) (string, string, error) {
 
 	user, err := u.UserRep.GetByUserId(ctx, id)
 	if err != nil {
 		slog.Error("couldn't find the user id",
 			"id", id,
 			"error", err.Error())
-		return err
+		return "", "", err
+	}
+
+	if user == nil {
+		slog.Error("user not found", "id", id)
+		return "", "", errors.New("user not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
@@ -247,7 +262,7 @@ func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldP
 			"oldpassword", oldPassword,
 			"newpassword", newPassword,
 			"error", err.Error())
-		return fmt.Errorf("password doesn't match")
+		return "", "", fmt.Errorf("password doesn't match")
 	}
 
 	hashPass, err := hashPassword(newPassword)
@@ -255,29 +270,37 @@ func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldP
 		slog.Error("invalid password",
 			"newpasswrod", newPassword,
 			"error", err.Error())
-		return err
+		return "", "", err
 	}
 
 	user.Password = hashPass
 
-	u.UserRep.DeleteRefreshToken(ctx, id)
-
-	refreshTokenString, err := GenerateRefreshToken(id.String())
+	err = u.UserRep.UpdateUser(ctx, user)
 	if err != nil {
-		slog.Error("Token error when changing password",
-			"error", err)
+		return "", "", err
 	}
 
-	newRefreshtoken := &models.RefreshToken{
-		ID:        uuid.New(),
-		UserID:    user.Uuid,
-		Token:     refreshTokenString,
-		ExpiresAt: time.Now().Add(3 * 24 * time.Hour),
+	u.UserRep.DeleteAccessToken(id)
+	u.UserRep.DeleteRefreshToken(id)
+
+	newAccessToken, err := GenerateAccessToken(id.String(), user.Role)
+	if err != nil {
+		slog.Error("error NewToken",
+			"error", err.Error())
+		return "", "", err
 	}
 
-	u.UserRep.SaveRefreshToken(ctx, newRefreshtoken)
+	newRefreshToken, err := GenerateRefreshToken(id.String(), user.Role)
+	if err != nil {
+		slog.Error("error NewToken",
+			"error", err.Error())
+		return "", "", err
+	}
 
-	return nil
+	u.UserRep.SaveAccessToken(id, newAccessToken)
+	u.UserRep.SaveRefreshToken(id, newRefreshToken)
+
+	return newAccessToken, newRefreshToken, nil
 
 }
 

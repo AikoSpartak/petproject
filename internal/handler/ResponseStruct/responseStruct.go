@@ -1,6 +1,10 @@
 package ResponseStruct
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type ResponseRegister struct {
 	Uuid        uuid.UUID
@@ -16,13 +20,13 @@ type LoginResponse struct {
 }
 
 type GetPrfileResponse struct {
-	Uuid         string `json:"uuid"`
-	Email        string `json:"email"`
-	FullName     string `json:"fullname"`
-	PhoneNumber  string `json:"phonenumber"`
-	DateBirthday uint   `json:"datebirthday"`
-	Role         string `json:"role"`
-	Country      string `json:"country"`
+	Uuid         string    `json:"uuid"`
+	Email        string    `json:"email"`
+	FullName     string    `json:"fullname"`
+	PhoneNumber  string    `json:"phonenumber"`
+	DateBirthday time.Time `json:"datebirthday"`
+	Role         string    `json:"role"`
+	Country      string    `json:"country"`
 }
 
 type UpdateProfileResponse struct {

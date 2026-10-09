@@ -3,6 +3,7 @@ package repository
 import (
 	"arch/internal/models"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -12,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+//go:generate mockgen -source=user_repository.go -destination=mocks/mock.go
+
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error)
@@ -19,8 +22,11 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, user *models.User) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error)
-	SaveRefreshToken(ctx context.Context, token *models.RefreshToken) error
-	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
+
+	SaveRefreshToken(userID uuid.UUID, RefreshToken string)
+	SaveAccessToken(userID uuid.UUID, AccessToken string)
+	DeleteAccessToken(userID uuid.UUID)
+	DeleteRefreshToken(userID uuid.UUID)
 }
 
 type UserRepo struct {
@@ -51,7 +57,7 @@ func (u *UserRepo) GetByUserId(ctx context.Context, id uuid.UUID) (*models.User,
 	}
 
 	var user models.User
-	if err := u.DB.WithContext(ctx).Where("uuid = ?", id).First(&user).Error; err != nil {
+	if err := u.DB.WithContext(ctx).Where("id = ?", id).First(&user).Error; err != nil {
 		slog.Error("couldn't find the user in db",
 			"id", id,
 			"error", err.Error())
@@ -114,7 +120,11 @@ func (u *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 	}
 
 	var user models.User
-	if err := u.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+	err := u.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		slog.Error("unable to find a user by email in the database",
 			"email", email,
 			"error", err.Error())
@@ -122,7 +132,6 @@ func (u *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 	}
 
 	u.Cache.Set(key, &user, ttl)
-
 	return &user, nil
 }
 
@@ -144,7 +153,7 @@ func (u *UserRepo) UpdateUser(ctx context.Context, user *models.User) error {
 
 func (u *UserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
-	if err := u.DB.WithContext(ctx).Delete(&models.User{}, "uuid = ?", id).Error; err != nil {
+	if err := u.DB.WithContext(ctx).Delete(&models.User{}, "id = ?", id).Error; err != nil {
 		slog.Error("failed to find a user by ID in the database",
 			"id", id,
 			"error", err.Error())
@@ -159,19 +168,30 @@ func (u *UserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (u *UserRepo) SaveRefreshToken(ctx context.Context, token *models.RefreshToken) error {
-	if err := u.DB.WithContext(ctx).Create(token).Error; err != nil {
-		slog.Error("Error saving token",
-			"token", token)
-	}
-	return nil
+func (u *UserRepo) SaveAccessToken(userID uuid.UUID, AccessToken string) {
+
+	key := "access" + userID.String()
+
+	u.Cache.Set(key, AccessToken, ttl)
+
 }
 
-func (u *UserRepo) DeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
-	if err := u.DB.WithContext(ctx).Where("token = ?", id).Delete(&models.RefreshToken{}).Error; err != nil {
-		slog.Error("Error delete token",
-			"id", id,
-			"error", err)
-	}
-	return nil
+func (u *UserRepo) SaveRefreshToken(userID uuid.UUID, RefreshToken string) {
+	key := "refresh" + userID.String()
+
+	u.Cache.Set(key, RefreshToken, 3*24*time.Hour)
+
+}
+
+func (u *UserRepo) DeleteAccessToken(userID uuid.UUID) {
+
+	key := "access" + userID.String()
+
+	u.Cache.Delete(key)
+}
+
+func (u *UserRepo) DeleteRefreshToken(userID uuid.UUID) {
+	key := "refresh" + userID.String()
+
+	u.Cache.Delete(key)
 }

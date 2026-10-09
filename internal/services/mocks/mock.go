@@ -13,6 +13,7 @@ import (
 	models "arch/internal/models"
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
@@ -58,11 +59,13 @@ func (mr *MockUserSrvicesMockRecorder) ChangeEmailUser(ctx, id, newEmail any) *g
 }
 
 // ChangePasswordUser mocks base method.
-func (m *MockUserSrvices) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
+func (m *MockUserSrvices) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) (string, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ChangePasswordUser", ctx, id, oldPassword, newPassword)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // ChangePasswordUser indicates an expected call of ChangePasswordUser.
@@ -118,7 +121,7 @@ func (mr *MockUserSrvicesMockRecorder) LoginUser(ctx, login, password any) *gomo
 }
 
 // RegisterUser mocks base method.
-func (m *MockUserSrvices) RegisterUser(ctx context.Context, login, password, phone, datebirthday, passport, country string) (*models.User, error) {
+func (m *MockUserSrvices) RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterUser", ctx, login, password, phone, datebirthday, passport, country)
 	ret0, _ := ret[0].(*models.User)

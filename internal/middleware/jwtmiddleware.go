@@ -34,7 +34,7 @@ func Auth(next http.Handler) http.Handler {
 		)
 
 		ctx = context.WithValue(
-			r.Context(),
+			ctx,
 			userRole,
 			claims.Role,
 		)
