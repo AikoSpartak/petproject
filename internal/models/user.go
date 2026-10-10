@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -9,7 +11,7 @@ type User struct {
 	FullName     string
 	Email        string
 	PhoneNumber  string
-	DateBirthday uint
+	DateBirthday time.Time
 	Passport     string
 	Password     string
 	IsBanned     bool

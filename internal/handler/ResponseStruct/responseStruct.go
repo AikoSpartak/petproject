@@ -1,6 +1,10 @@
-package resreqstruct
+package ResponseStruct
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type ResponseRegister struct {
 	Uuid        uuid.UUID
@@ -9,26 +13,27 @@ type ResponseRegister struct {
 }
 
 type LoginResponse struct {
-	Uuid  string `json:"uuid"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	Uuid         string `json:"uuid"`
+	Email        string `json:"email"`
+	AccessToken  string `json:"accesstoken"`
+	RefreshToken string `json:"refreshtoken"`
 }
 
 type GetPrfileResponse struct {
-	Uuid         string `json:"uuid"`
-	Email        string `json:"email"`
-	FullName     string `json:"fullname"`
-	PhoneNumber  string `json:"phone_number"`
-	DateBirthday uint   `json:"datebirthday"`
-	Role         string `json:"role"`
-	Country      string `json:"country"`
+	Uuid         string    `json:"uuid"`
+	Email        string    `json:"email"`
+	FullName     string    `json:"fullname"`
+	PhoneNumber  string    `json:"phonenumber"`
+	DateBirthday time.Time `json:"datebirthday"`
+	Role         string    `json:"role"`
+	Country      string    `json:"country"`
 }
 
 type UpdateProfileResponse struct {
 	Uuid        uuid.UUID `json:"id"`
 	FullName    string    `json:"full_name"`
 	Email       string    `json:"email"`
-	PhoneNumber string    `json:"phone_number"`
+	PhoneNumber string    `json:"phonenumber"`
 	Country     string    `json:"country"`
 }
 

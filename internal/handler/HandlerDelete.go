@@ -1,20 +1,29 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 
-func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 
-	start := time.Now()
+	var req RequestStruct.DeleteUserRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		slog.Error("mail parsing error when requesting",
+			"error", err.Error())
+		http.Error(w, "invalid request id", http.StatusBadRequest)
+		return
+	}
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
@@ -25,23 +34,18 @@ func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	userId, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	if !middleware.VerificationRole(userRole, userId, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access is denied", http.StatusForbidden)
+		return
 	}
 
-	err = u.UserServices.DeleteAccount(r.Context(), id)
+	err = u.UserServices.DeleteAccountUser(r.Context(), id)
 	if err != nil {
 		http.Error(w, "failed to delete account", http.StatusNotFound)
 		return
@@ -50,12 +54,9 @@ func (u *UserHandler) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := resreqstruct.DeleteResponse{
+	response := ResponseStruct.DeleteResponse{
 		Message: "account deleted successfully",
 	}
-
-	slog.Info("the user was successfully deleted during the request",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

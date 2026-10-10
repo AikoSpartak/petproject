@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/nyaruka/phonenumbers/v2"
+	"github.com/ttacon/libphonenumber"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,12 +46,12 @@ func validateNumber(number string) error {
 		return ErrorsPhone
 	}
 
-	res, err := phonenumbers.Parse(number, "RU")
+	num, err := libphonenumber.Parse(number, "RU")
 	if err != nil {
 		return err
 	}
 
-	if !phonenumbers.IsValidNumber(res) {
+	if !libphonenumber.IsValidNumber(num) {
 		return ErrorsPhone
 	}
 

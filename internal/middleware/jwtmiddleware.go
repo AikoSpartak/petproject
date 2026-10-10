@@ -7,11 +7,8 @@ import (
 	"strings"
 )
 
-type userIDKeyType string
-type userRoleType string
-
-const userIDKey userIDKeyType = "user_id"
-const userRole userRoleType = "role"
+const userIDKey = "user_id"
+const userRole = "role"
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +34,7 @@ func Auth(next http.Handler) http.Handler {
 		)
 
 		ctx = context.WithValue(
-			r.Context(),
+			ctx,
 			userRole,
 			claims.Role,
 		)

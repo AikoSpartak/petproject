@@ -1,14 +1,7 @@
 package middleware
 
-func VerificationRole(role, jwtId, userId string) bool {
+import "arch/internal/models"
 
-	if role == "admin" {
-		return true
-	}
-
-	if role == "user" && jwtId == userId {
-		return true
-	}
-
-	return false
+func VerificationRole(role models.Role, jwtId, userId string) bool {
+	return role.HasAccess(jwtId, userId)
 }

@@ -2,33 +2,57 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JWTKey = []byte("my_secret_key")
-
 type JWTClaims struct {
 	UserID string `json:"user_id"`
-	Email  string `json:"email"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID, email, role string) (string, error) {
+func getJWT() ([]byte, error) {
+	key, ok := os.LookupEnv("JWT_Key")
+
+	if !ok {
+		return nil, fmt.Errorf("invalid secret key")
+	}
+
+	return []byte(key), nil
+}
+
+func getRefreshToken() ([]byte, error) {
+
+	key, ok := os.LookupEnv("REFRESH_TOKEN")
+	if !ok {
+		return nil, fmt.Errorf("invalid secret key")
+	}
+	return []byte(key), nil
+}
+
+func GenerateAccessToken(userID, role string) (string, error) {
+
+	secretKey, err := getJWT()
+	if err != nil {
+		return "", fmt.Errorf("failed to get JWT")
+	}
+
 	claims := JWTClaims{
 		UserID: userID,
-		Email:  email,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * 24 * time.Hour)),
+			Subject:   "access",
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString(JWTKey)
+	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +68,11 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, errors.New("unexpected signing method")
 			}
-			return JWTKey, nil
+			key, err := getJWT()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get JWT key: %w", err)
+			}
+			return key, nil
 		},
 	)
 
@@ -58,4 +86,23 @@ func ValidateToken(tokenString string) (*JWTClaims, error) {
 	}
 
 	return claims, nil
+}
+
+func GenerateRefreshToken(userID, role string) (string, error) {
+	secretKey, err := getRefreshToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to get refresh key: %w", err)
+	}
+
+	claims := JWTClaims{
+		UserID: userID,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * 24 * time.Hour)),
+			Subject:   "refresh",
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(secretKey)
 }

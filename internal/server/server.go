@@ -5,7 +5,7 @@ import (
 )
 
 type Server struct {
-	HttpServer *http.Server //
+	HttpServer *http.Server
 }
 
 func NewServer(port string, handler http.Handler) *Server {

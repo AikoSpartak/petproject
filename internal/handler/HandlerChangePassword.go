@@ -1,21 +1,21 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
+	"arch/internal/models"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 )
 
-func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Request) {
+func (u *UserHandler) ChangeUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
 
-	start := time.Now()
-	var req resreqstruct.ChangePasswordRequest
+	var req RequestStruct.ChangePasswordRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -34,24 +34,18 @@ func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	userRole, ok := middleware.UserRoleFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorezed", http.StatusUnauthorized)
-		return
-	}
-
-	userId, ok := middleware.UserIDFromContext(r.Context())
+	userId, userRole, ok := middleware.GetUserRole(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if !middleware.VerificationRole(userRole, userId, id.String()) {
+	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access in denied", http.StatusForbidden)
 		return
 	}
 
-	err = u.UserServices.ChangePassword(r.Context(), id, req.OldPassword, req.NewPassword)
+	_, _, err = u.UserServices.ChangePasswordUser(r.Context(), id, req.OldPassword, req.NewPassword)
 	if err != nil {
 		slog.Error("error receiving the password when requesting",
 			"error", err.Error())
@@ -62,12 +56,9 @@ func (u *UserHandler) HandlerChangePassword(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := resreqstruct.ChangePasswordResponse{
+	response := ResponseStruct.ChangePasswordResponse{
 		Message: "password changed successfully",
 	}
-
-	slog.Info("successful password change request",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {

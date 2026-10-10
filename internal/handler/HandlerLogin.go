@@ -1,17 +1,16 @@
 package handler
 
 import (
-	resreqstruct "arch/internal/handler/ResReqStruct"
+	"arch/internal/handler/RequestStruct"
+	"arch/internal/handler/ResponseStruct"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"time"
 )
 
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
-	var req resreqstruct.LoginRequest
-	start := time.Now()
+	var req RequestStruct.LoginRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -21,7 +20,7 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, user, err := u.UserServices.LoginUser(
+	accessToken, refreshToken, user, err := u.UserServices.LoginUser(
 		r.Context(),
 		req.Login,
 		req.Password,
@@ -32,17 +31,15 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := resreqstruct.LoginResponse{
-		Uuid:  user.Uuid.String(),
-		Email: user.Email,
-		Token: token,
+	response := ResponseStruct.LoginResponse{
+		Uuid:         user.Uuid.String(),
+		Email:        user.Email,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	slog.Info("successful authorization",
-		"time", time.Since(start).Milliseconds())
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
