@@ -7,37 +7,37 @@ import (
 )
 
 type RegisterRequest struct {
-	Email        string    `json:"email"`
-	Password     string    `json:"password"`
-	PhoneNumber  string    `json:"phonenumber"`
-	DateBirthday time.Time `json:"datebirthday"`
-	Passport     string    `json:"passport"`
-	Country      string    `json:"country"`
+	Email        string    `json:"Email"`
+	Password     string    `json:"Password"`
+	PhoneNumber  string    `json:"PhoneNumber"`
+	DateBirthday time.Time `json:"DateBirthday"`
+	Passport     string    `json:"Passport"`
+	Country      string    `json:"Country"`
 }
 
 type LoginRequest struct {
-	Login    string `json:"email"`
-	Password string `json:"password"`
+	Login    string `json:"Email"`
+	Password string `json:"Password"`
 }
 
 type GetPrfileRequest struct {
-	ID uuid.UUID `json:"id"`
+	ID uuid.UUID `json:"Id"`
 }
 
 type UpdateProfileRequest struct {
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
+	Name  string `json:"Name"`
+	Phone string `json:"Phone"`
 }
 
 type ChangeEmailRequest struct {
-	Email string `json:"email"`
+	Email string `json:"Email"`
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `json:"oldpassword"`
-	NewPassword string `json:"newpassword"`
+	OldPassword string `json:"OldPassword"`
+	NewPassword string `json:"NewPassword"`
 }
 
 type DeleteUserRequest struct {
-	Email string `json:"email"`
+	Email string `json:"Email"`
 }

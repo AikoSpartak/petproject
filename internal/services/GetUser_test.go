@@ -28,7 +28,7 @@ func TestGetUser(t *testing.T) {
 				PhoneNumber: "+79995844443",
 			}, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.GetUser(t.Context(), userID)
 
@@ -49,7 +49,7 @@ func TestGetUser(t *testing.T) {
 			GetByUserId(gomock.Any(), userID).
 			Return(nil, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.GetUser(t.Context(), userID)
 

@@ -21,7 +21,7 @@ func TestRegisterUser(t *testing.T) {
 			CreateUser(gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.RegisterUser(t.Context(),
 			"admin@mail.ru",
@@ -49,7 +49,7 @@ func TestRegisterUser(t *testing.T) {
 
 		mockRepository := mocks.NewMockUserRepository(ctrl)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.RegisterUser(t.Context(),
 			"admin@",
@@ -69,7 +69,7 @@ func TestRegisterUser(t *testing.T) {
 
 		mockRepository := mocks.NewMockUserRepository(ctrl)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.RegisterUser(t.Context(),
 			"admin@mail.ru",
@@ -90,7 +90,7 @@ func TestRegisterUser(t *testing.T) {
 
 		mockRepository := mocks.NewMockUserRepository(ctrl)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.RegisterUser(t.Context(),
 			"admin@mail.ru",

@@ -27,7 +27,7 @@ func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
 		r.Get("/users/{id}", u.GetUserHandler)
 		r.Put("/users/{id}", u.UpdateUsereHandler)
 		r.Put("/users/{id}/email", u.ChangeUserEmailHandler)
-		r.Put("/users/{id}/password", u.ChangeUserPasswordHandler)
+		r.Put("/users/{id}/ChangePassword", u.ChangeUserPasswordHandler)
 		r.Delete("/users/{id}", u.DeleteUserHandler)
 	})
 }

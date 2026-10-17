@@ -12,7 +12,7 @@ import (
 )
 
 type App struct {
-	UserRepo    *repository.UserRepo
+	UserRepo    *repository.UserRepositor
 	UserService *services.UserService
 	UserHandler *handler.UserHandler
 	Router      *chi.Mux
@@ -20,8 +20,8 @@ type App struct {
 
 func AppService(db *gorm.DB, cache *cache.Cache) *App {
 
-	userRepo := &repository.UserRepo{DB: db, Cache: cache}
-	userService := &services.UserService{UserRep: userRepo}
+	userRepo := &repository.UserRepositor{DB: db, Cache: cache}
+	userService := &services.UserService{UserRepositor: userRepo}
 	userHandler := &handler.UserHandler{UserServices: userService}
 
 	router := chi.NewRouter()

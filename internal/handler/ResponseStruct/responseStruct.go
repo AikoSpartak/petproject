@@ -8,44 +8,44 @@ import (
 
 type ResponseRegister struct {
 	Uuid        uuid.UUID
-	Email       string `json:"email"`
-	PhoneNumber string `json:"phonenumber"`
+	Email       string `json:"Email"`
+	PhoneNumber string `json:"PhoneNumber"`
 }
 
 type LoginResponse struct {
-	Uuid         string `json:"uuid"`
-	Email        string `json:"email"`
-	AccessToken  string `json:"accesstoken"`
-	RefreshToken string `json:"refreshtoken"`
+	Uuid         string `json:"Uuid"`
+	Email        string `json:"Email"`
+	AccessToken  string `json:"AccessToken"`
+	RefreshToken string `json:"RefreshToken"`
 }
 
 type GetPrfileResponse struct {
-	Uuid         string    `json:"uuid"`
-	Email        string    `json:"email"`
-	FullName     string    `json:"fullname"`
-	PhoneNumber  string    `json:"phonenumber"`
-	DateBirthday time.Time `json:"datebirthday"`
-	Role         string    `json:"role"`
-	Country      string    `json:"country"`
+	Uuid         string    `json:"Uuid"`
+	Email        string    `json:"Email"`
+	FullName     string    `json:"FullName"`
+	PhoneNumber  string    `json:"PhoneNumber"`
+	DateBirthday time.Time `json:"DateBirthday"`
+	Role         string    `json:"Role"`
+	Country      string    `json:"Country"`
 }
 
 type UpdateProfileResponse struct {
-	Uuid        uuid.UUID `json:"id"`
-	FullName    string    `json:"full_name"`
-	Email       string    `json:"email"`
-	PhoneNumber string    `json:"phonenumber"`
-	Country     string    `json:"country"`
+	Uuid        uuid.UUID `json:"Id"`
+	FullName    string    `json:"FullName"`
+	Email       string    `json:"Email"`
+	PhoneNumber string    `json:"PhoneNumber"`
+	Country     string    `json:"Country"`
 }
 
 type ChangeEmailResponse struct {
-	Uuid  uuid.UUID `json:"id"`
-	Email string    `json:"email"`
+	Uuid  uuid.UUID `json:"Id"`
+	Email string    `json:"Email"`
 }
 
 type ChangePasswordResponse struct {
-	Message string `json:"message"`
+	Message string `json:"Message"`
 }
 
 type DeleteResponse struct {
-	Message string `json:"message"`
+	Message string `json:"Message"`
 }

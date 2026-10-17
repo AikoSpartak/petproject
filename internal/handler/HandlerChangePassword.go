@@ -38,14 +38,22 @@ func (u *UserHandler) ChangeUserPasswordHandler(w http.ResponseWriter, r *http.R
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
+
 	}
+	slog.Info("access check",
+		"role", userRole,
+		"jwt_user_id", userId,
+		"target_id", id.String(),
+		"match", userId == id.String(),
+		"has_access", middleware.VerificationRole(models.Role(userRole), userId, id.String()),
+	)
 
 	if !middleware.VerificationRole(models.Role(userRole), userId, id.String()) {
 		http.Error(w, "access in denied", http.StatusForbidden)
 		return
 	}
 
-	_, _, err = u.UserServices.ChangePasswordUser(r.Context(), id, req.OldPassword, req.NewPassword)
+	err = u.UserServices.ChangePasswordUser(r.Context(), id, req.OldPassword, req.NewPassword)
 	if err != nil {
 		slog.Error("error receiving the password when requesting",
 			"error", err.Error())

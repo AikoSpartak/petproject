@@ -32,7 +32,7 @@ func TestUpdateUser(t *testing.T) {
 			UpdateUser(gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		srv := &UserService{UserRep: mockRepository}
+		srv := &UserService{UserRepositor: mockRepository}
 
 		user, err := srv.UpdateUser(t.Context(), userID, "aleksandr", "+799995844443")
 
@@ -55,7 +55,7 @@ func TestUpdateUser(t *testing.T) {
 			GetByUserId(gomock.Any(), userID).
 			Return(nil, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.UpdateUser(t.Context(), userID, "gena", "asd@mail.ru")
 
