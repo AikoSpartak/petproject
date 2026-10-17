@@ -29,15 +29,16 @@ type UserRepository interface {
 	DeleteRefreshToken(userID uuid.UUID)
 }
 
-type UserRepo struct {
+type UserRepositor struct {
 	DB    *gorm.DB
 	Cache *cache.Cache
 }
 
-const ttl = 5 * time.Minute
+const ttlAccess = 5 * time.Minute
+
 const maxLimit = 50
 
-func (u *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
+func (u *UserRepositor) CreateUser(ctx context.Context, user *models.User) error {
 
 	if err := u.DB.WithContext(ctx).Create(user).Error; err != nil {
 		slog.Error("Failed creat user",
@@ -48,7 +49,7 @@ func (u *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (u *UserRepo) GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error) {
+func (u *UserRepositor) GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error) {
 
 	key := fmt.Sprintf("user:%s", id.String())
 
@@ -65,12 +66,12 @@ func (u *UserRepo) GetByUserId(ctx context.Context, id uuid.UUID) (*models.User,
 		return nil, err
 	}
 
-	u.Cache.Set(key, &user, ttl)
+	u.Cache.Set(key, &user, ttlAccess)
 
 	return &user, nil
 }
 
-func (u *UserRepo) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error) {
+func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error) {
 
 	if limit <= 0 || limit > 50 {
 		limit = maxLimit
@@ -107,12 +108,12 @@ func (u *UserRepo) GetAllUsers(ctx context.Context, active bool, limit, offset i
 		return nil, err
 	}
 
-	u.Cache.Set(key, users, ttl)
+	u.Cache.Set(key, users, ttlAccess)
 
 	return users, nil
 }
 
-func (u *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+func (u *UserRepositor) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 
 	key := fmt.Sprintf("user:email:%s", email)
 	if val, found := u.Cache.Get(key); found {
@@ -125,33 +126,35 @@ func (u *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		slog.Error("unable to find a user by email in the database",
+		slog.Error("unable user in database",
 			"email", email,
 			"error", err.Error())
 		return nil, err
 	}
 
-	u.Cache.Set(key, &user, ttl)
+	u.Cache.Set(key, &user, ttlAccess)
 	return &user, nil
 }
 
-func (u *UserRepo) UpdateUser(ctx context.Context, user *models.User) error {
+func (u *UserRepositor) UpdateUser(ctx context.Context, user *models.User) error {
 
-	if err := u.DB.WithContext(ctx).Model(user).Updates(user).Error; err != nil {
-		slog.Error("failed to update a user in the database",
+	if err := u.DB.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", user.Uuid).
+		Update("password", user.Password).Error; err != nil {
+		slog.Error("failed to update in database",
 			"error", err.Error())
 		return err
 	}
 
 	userKey := fmt.Sprintf("user:%s", user.Uuid.String())
+	u.Cache.Delete(fmt.Sprintf("user:email:%s", user.Email))
 	u.Cache.Delete(userKey)
-
-	u.Cache.Delete("user:all:*")
 
 	return nil
 }
 
-func (u *UserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
+func (u *UserRepositor) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 	if err := u.DB.WithContext(ctx).Delete(&models.User{}, "id = ?", id).Error; err != nil {
 		slog.Error("failed to find a user by ID in the database",
@@ -168,29 +171,29 @@ func (u *UserRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (u *UserRepo) SaveAccessToken(userID uuid.UUID, AccessToken string) {
+func (u *UserRepositor) SaveAccessToken(userID uuid.UUID, AccessToken string) {
 
 	key := "access" + userID.String()
 
-	u.Cache.Set(key, AccessToken, ttl)
+	u.Cache.Set(key, AccessToken, ttlAccess)
 
 }
 
-func (u *UserRepo) SaveRefreshToken(userID uuid.UUID, RefreshToken string) {
+func (u *UserRepositor) SaveRefreshToken(userID uuid.UUID, RefreshToken string) {
 	key := "refresh" + userID.String()
 
 	u.Cache.Set(key, RefreshToken, 3*24*time.Hour)
 
 }
 
-func (u *UserRepo) DeleteAccessToken(userID uuid.UUID) {
+func (u *UserRepositor) DeleteAccessToken(userID uuid.UUID) {
 
 	key := "access" + userID.String()
 
 	u.Cache.Delete(key)
 }
 
-func (u *UserRepo) DeleteRefreshToken(userID uuid.UUID) {
+func (u *UserRepositor) DeleteRefreshToken(userID uuid.UUID) {
 	key := "refresh" + userID.String()
 
 	u.Cache.Delete(key)

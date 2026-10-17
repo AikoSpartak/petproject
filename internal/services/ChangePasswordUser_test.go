@@ -18,8 +18,8 @@ func TestChangePasswordUser(t *testing.T) {
 		oldPassword := "123456789"
 		newPassword := "987654321"
 
-		t.Setenv("JWT_Key", "test-secret-key-for-jwt")
-		t.Setenv("REFRESH_TOKEN", "test-secret-key-for-refresh")
+		t.Setenv("JWT_KEY", "test-secret-key-for-jwt")
+		t.Setenv("SECRET_KEY", "test-secret-key-for-refresh")
 
 		hashPasOld, _ := bcrypt.GenerateFromPassword([]byte(oldPassword), bcrypt.DefaultCost)
 
@@ -40,18 +40,12 @@ func TestChangePasswordUser(t *testing.T) {
 			UpdateUser(gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		mockRepository.EXPECT().DeleteAccessToken(userID)
-		mockRepository.EXPECT().DeleteRefreshToken(userID)
-		mockRepository.EXPECT().SaveAccessToken(userID, gomock.Any())
-		mockRepository.EXPECT().SaveRefreshToken(userID, gomock.Any())
+		mock := &UserService{UserRepositor: mockRepository}
 
-		mock := &UserService{UserRep: mockRepository}
-
-		accessToken, refreshToke, err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
+		err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
 
 		require.NoError(t, err)
-		require.NotEmpty(t, accessToken)
-		require.NotEmpty(t, refreshToke)
+
 	})
 
 	t.Run("invalid new password", func(t *testing.T) {
@@ -74,13 +68,11 @@ func TestChangePasswordUser(t *testing.T) {
 				Password: string(hashPassword)},
 				nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
-		access, refresh, err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
+		err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
 
 		require.Error(t, err)
-		require.Empty(t, access)
-		require.Empty(t, refresh)
 
 	})
 
@@ -99,13 +91,12 @@ func TestChangePasswordUser(t *testing.T) {
 			GetByUserId(gomock.Any(), userID).
 			Return(nil, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
-		access, refresh, err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
+		err := mock.ChangePasswordUser(t.Context(), userID, oldPassword, newPassword)
 
 		require.Error(t, err)
-		require.Empty(t, access)
-		require.Empty(t, refresh)
+
 	})
 
 }

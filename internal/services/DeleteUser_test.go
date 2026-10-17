@@ -29,7 +29,7 @@ func TestDeleteUser(t *testing.T) {
 		DeleteUser(gomock.Any(), userID).
 		Return(nil)
 
-	mock := &UserService{UserRep: mockRepository}
+	mock := &UserService{UserRepositor: mockRepository}
 
 	err := mock.DeleteAccountUser(t.Context(), userID)
 

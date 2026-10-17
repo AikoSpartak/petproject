@@ -40,7 +40,7 @@ func TestChangeEmailUser(t *testing.T) {
 			UpdateUser(gomock.Any(), gomock.Any()).
 			Return(nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.ChangeEmailUser(t.Context(), userID, newEmail)
 
@@ -59,7 +59,7 @@ func TestChangeEmailUser(t *testing.T) {
 
 		mockRepository := mocks.NewMockUserRepository(ctrl)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.ChangeEmailUser(t.Context(), userID, newEmail)
 
@@ -86,7 +86,7 @@ func TestChangeEmailUser(t *testing.T) {
 				Email: newEmail,
 			}, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		user, err := mock.ChangeEmailUser(t.Context(), newID, newEmail)
 		require.Error(t, err)

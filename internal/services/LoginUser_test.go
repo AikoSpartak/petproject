@@ -16,8 +16,8 @@ func TestLoginUser(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
 
-		t.Setenv("JWT_Key", "test-secret-key-for-jwt")
-		t.Setenv("REFRESH_TOKEN", "test-secret-key-for-refresh")
+		t.Setenv("JWT_KEY", "test-secret-key-for-jwt")
+		t.Setenv("SECRET_KEY", "test-secret-key-for-refresh")
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -40,7 +40,7 @@ func TestLoginUser(t *testing.T) {
 		mockRepository.EXPECT().SaveAccessToken(userID, gomock.Any())
 		mockRepository.EXPECT().SaveRefreshToken(userID, gomock.Any())
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		accessToken, refreshToken, user, err := mock.LoginUser(
 			t.Context(),
@@ -66,7 +66,7 @@ func TestLoginUser(t *testing.T) {
 			GetByEmail(gomock.Any(), "sasa@mail.ru").
 			Return(nil, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		access, refresh, user, err := mock.LoginUser(t.Context(), "sasa@mail.ru", "asdf")
 
@@ -99,7 +99,7 @@ func TestLoginUser(t *testing.T) {
 				Role:     "admin",
 			}, nil)
 
-		mock := &UserService{UserRep: mockRepository}
+		mock := &UserService{UserRepositor: mockRepository}
 
 		access, refresh, user, err := mock.LoginUser(t.Context(), "admin@mail.ru", noCurrectPassword)
 

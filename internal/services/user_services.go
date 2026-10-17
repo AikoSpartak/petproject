@@ -31,12 +31,12 @@ type UserSrvices interface {
 	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
 	ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
-	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) (string, string, error)
+	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
 	DeleteAccountUser(ctx context.Context, id uuid.UUID) error
 }
 
 type UserService struct {
-	UserRep repository.UserRepository
+	UserRepositor repository.UserRepository
 }
 
 func (u *UserService) RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error) {
@@ -73,10 +73,10 @@ func (u *UserService) RegisterUser(ctx context.Context, login, password, phone s
 		DateBirthday: datebirthday,
 		Passport:     passport,
 		Country:      country,
-		Role:         "admin",
+		Role:         "user",
 	}
 
-	if err := u.UserRep.CreateUser(ctx, user); err != nil {
+	if err := u.UserRepositor.CreateUser(ctx, user); err != nil {
 		slog.Error("failed couldn't add user",
 			"email", login,
 			"error", err.Error())
@@ -89,7 +89,7 @@ func (u *UserService) RegisterUser(ctx context.Context, login, password, phone s
 
 func (u *UserService) LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error) {
 
-	user, err := u.UserRep.GetByEmail(ctx, login)
+	user, err := u.UserRepositor.GetByEmail(ctx, login)
 	if err != nil {
 		slog.Warn("couldn't get the user",
 			"email", login,
@@ -137,18 +137,17 @@ func (u *UserService) LoginUser(ctx context.Context, login, password string) (st
 		return "", "", nil, err
 	}
 
-	u.UserRep.DeleteAccessToken(user.Uuid)
-	u.UserRep.DeleteRefreshToken(user.Uuid)
+	u.UserRepositor.DeleteAccessToken(user.Uuid)
+	u.UserRepositor.DeleteRefreshToken(user.Uuid)
 
-	u.UserRep.SaveAccessToken(user.Uuid, accessToken)
-	u.UserRep.SaveRefreshToken(user.Uuid, refreshtoken)
+	u.UserRepositor.SaveRefreshToken(user.Uuid, refreshtoken)
 
 	return accessToken, refreshtoken, user, nil
 }
 
 func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, error) {
 
-	user, err := u.UserRep.GetByUserId(ctx, id)
+	user, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
 		slog.Warn("couldn't find the user",
 			"id", id,
@@ -166,7 +165,7 @@ func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, 
 
 func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
 
-	user, err := u.UserRep.GetByUserId(ctx, id)
+	user, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
 		slog.Error("couldn't find the user",
 			"id", id,
@@ -183,7 +182,7 @@ func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone 
 	user.FullName = name
 	user.PhoneNumber = phone
 
-	err = u.UserRep.UpdateUser(ctx, user)
+	err = u.UserRepositor.UpdateUser(ctx, user)
 	if err != nil {
 		slog.Error("couldn't update user",
 			"id", id,
@@ -204,7 +203,7 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 		return nil, ErrorSenEmail
 	}
 
-	user, err := u.UserRep.GetByEmail(ctx, newEmail)
+	user, err := u.UserRepositor.GetByEmail(ctx, newEmail)
 	if err != nil {
 		slog.Error("couldn't get the user email",
 			"error", err.Error())
@@ -215,7 +214,7 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 		return nil, errors.New("email error")
 	}
 
-	userEmail, err := u.UserRep.GetByUserId(ctx, id)
+	userEmail, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
 		slog.Error("couldn't find the user id",
 			"id", id,
@@ -230,7 +229,7 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 
 	userEmail.Email = newEmail
 
-	err = u.UserRep.UpdateUser(ctx, userEmail)
+	err = u.UserRepositor.UpdateUser(ctx, userEmail)
 	if err != nil {
 		slog.Error("couldn't update data",
 			"error", err.Error(),
@@ -242,71 +241,9 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 
 }
 
-func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) (string, string, error) {
+func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error {
 
-	user, err := u.UserRep.GetByUserId(ctx, id)
-	if err != nil {
-		slog.Error("couldn't find the user id",
-			"id", id,
-			"error", err.Error())
-		return "", "", err
-	}
-
-	if user == nil {
-		slog.Error("user not found", "id", id)
-		return "", "", errors.New("user not found")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
-		slog.Error("invalid password",
-			"oldpassword", oldPassword,
-			"newpassword", newPassword,
-			"error", err.Error())
-		return "", "", fmt.Errorf("password doesn't match")
-	}
-
-	hashPass, err := hashPassword(newPassword)
-	if err != nil {
-		slog.Error("invalid password",
-			"newpasswrod", newPassword,
-			"error", err.Error())
-		return "", "", err
-	}
-
-	user.Password = hashPass
-
-	err = u.UserRep.UpdateUser(ctx, user)
-	if err != nil {
-		return "", "", err
-	}
-
-	u.UserRep.DeleteAccessToken(id)
-	u.UserRep.DeleteRefreshToken(id)
-
-	newAccessToken, err := GenerateAccessToken(id.String(), user.Role)
-	if err != nil {
-		slog.Error("error NewToken",
-			"error", err.Error())
-		return "", "", err
-	}
-
-	newRefreshToken, err := GenerateRefreshToken(id.String(), user.Role)
-	if err != nil {
-		slog.Error("error NewToken",
-			"error", err.Error())
-		return "", "", err
-	}
-
-	u.UserRep.SaveAccessToken(id, newAccessToken)
-	u.UserRep.SaveRefreshToken(id, newRefreshToken)
-
-	return newAccessToken, newRefreshToken, nil
-
-}
-
-func (u *UserService) DeleteAccountUser(ctx context.Context, id uuid.UUID) error {
-
-	user, err := u.UserRep.GetByUserId(ctx, id)
+	user, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
 		slog.Error("couldn't find the user id",
 			"id", id,
@@ -314,5 +251,47 @@ func (u *UserService) DeleteAccountUser(ctx context.Context, id uuid.UUID) error
 		return err
 	}
 
-	return u.UserRep.DeleteUser(ctx, user.Uuid)
+	if user == nil {
+		slog.Error("user not found", "id", id)
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword)); err != nil {
+		slog.Error("invalid password",
+			"oldpassword", oldPassword,
+			"newpassword", newPassword,
+			"error", err.Error())
+		return fmt.Errorf("password doesn't match")
+	}
+
+	hashPass, err := hashPassword(newPassword)
+	if err != nil {
+		slog.Error("invalid password",
+			"newpasswrod", newPassword,
+			"error", err.Error())
+		return err
+	}
+
+	user.Password = hashPass
+
+	err = u.UserRepositor.UpdateUser(ctx, user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (u *UserService) DeleteAccountUser(ctx context.Context, id uuid.UUID) error {
+
+	user, err := u.UserRepositor.GetByUserId(ctx, id)
+	if err != nil {
+		slog.Error("couldn't find the user id",
+			"id", id,
+			"error", err.Error())
+		return err
+	}
+
+	return u.UserRepositor.DeleteUser(ctx, user.Uuid)
 }

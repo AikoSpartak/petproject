@@ -32,6 +32,13 @@ func hashPassword(password string) (string, error) {
 		return "", ErrorsPassword
 	}
 
+	passwordUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
+	passwordSpecial := regexp.MustCompile(`[!@#$%^&*]`).MatchString(password)
+
+	if !passwordUpper || !passwordSpecial {
+		return "", errors.New("password must contain an uppercase letter and a special character")
+	}
+
 	hashPass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
