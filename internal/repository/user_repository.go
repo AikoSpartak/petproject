@@ -19,9 +19,13 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy, role, country string) ([]*models.User, error)
+
 	UpdateUser(ctx context.Context, user *models.User) error
+	UpdateUserEmail(ctx context.Context, user *models.User) error
+	UpdateUserPassword(ctx context.Context, user *models.User) error
+
 	DeleteUser(ctx context.Context, id uuid.UUID) error
-	GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error)
 
 	SaveRefreshToken(userID uuid.UUID, RefreshToken string)
 	SaveAccessToken(userID uuid.UUID, AccessToken string)
@@ -34,14 +38,14 @@ type UserRepositor struct {
 	Cache *cache.Cache
 }
 
-const ttlAccess = 5 * time.Minute
+const ttlAccess = 24 * time.Hour
 
 const maxLimit = 50
 
 func (u *UserRepositor) CreateUser(ctx context.Context, user *models.User) error {
 
 	if err := u.DB.WithContext(ctx).Create(user).Error; err != nil {
-		slog.Error("Failed creat user",
+		slog.Error("Database error saving new user",
 			"error", err.Error())
 		return err
 	}
@@ -59,7 +63,7 @@ func (u *UserRepositor) GetByUserId(ctx context.Context, id uuid.UUID) (*models.
 
 	var user models.User
 	if err := u.DB.WithContext(ctx).Where("id = ?", id).First(&user).Error; err != nil {
-		slog.Error("couldn't find the user in db",
+		slog.Error("User not found",
 			"id", id,
 			"error", err.Error())
 
@@ -71,7 +75,7 @@ func (u *UserRepositor) GetByUserId(ctx context.Context, id uuid.UUID) (*models.
 	return &user, nil
 }
 
-func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy string) ([]*models.User, error) {
+func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy, role, country string) ([]*models.User, error) {
 
 	if limit <= 0 || limit > 50 {
 		limit = maxLimit
@@ -81,7 +85,7 @@ func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, off
 		offset = 0
 	}
 
-	key := fmt.Sprintf("users:all:active:%v:limit:%d:offset:%d:orderBy:%s", active, limit, offset, orderBy)
+	key := fmt.Sprintf("users:all:active:%v:limit:%d:offset:%d:orderBy:%s:role%s:country%s", active, limit, offset, orderBy, role, country)
 
 	if val, found := u.Cache.Get(key); found {
 		return val.([]*models.User), nil
@@ -90,16 +94,26 @@ func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, off
 	var users []*models.User
 
 	query := u.DB.WithContext(ctx)
+
 	if active {
 		query = query.Where("active = ?", true)
 	}
+
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+
+	if country != "" {
+		query = query.Where("country = ?", country)
+	}
+
 	query = query.
 		Order(orderBy).
 		Limit(limit).
 		Offset(offset)
 
 	if err := query.Find(&users).Error; err != nil {
-		slog.Error("couldn't find the user in db",
+		slog.Error("User not found",
 			"error", err.Error(),
 			"active", active,
 			"limit", limit,
@@ -126,7 +140,7 @@ func (u *UserRepositor) GetByEmail(ctx context.Context, email string) (*models.U
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		slog.Error("unable user in database",
+		slog.Error("User not found",
 			"email", email,
 			"error", err.Error())
 		return nil, err
@@ -141,6 +155,42 @@ func (u *UserRepositor) UpdateUser(ctx context.Context, user *models.User) error
 	if err := u.DB.WithContext(ctx).
 		Model(&models.User{}).
 		Where("id = ?", user.Uuid).
+		Update("full_name", user.FullName).
+		Update("phone_number", user.PhoneNumber).Error; err != nil {
+		slog.Error("failed to update in database")
+		return err
+	}
+
+	userKey := fmt.Sprintf("user:%s", user.Uuid.String())
+	u.Cache.Delete(userKey)
+	u.Cache.Delete("user:all:*")
+
+	return nil
+}
+
+func (u *UserRepositor) UpdateUserEmail(ctx context.Context, user *models.User) error {
+
+	if err := u.DB.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", user.Uuid).
+		Update("email", user.Email).Error; err != nil {
+		slog.Error("failed to update in database")
+		return err
+	}
+
+	userKey := fmt.Sprintf("user:%s", user.Uuid.String())
+	u.Cache.Delete(fmt.Sprintf("user:email:%s", user.Email))
+	u.Cache.Delete(userKey)
+
+	return nil
+
+}
+
+func (u *UserRepositor) UpdateUserPassword(ctx context.Context, user *models.User) error {
+
+	if err := u.DB.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", user.Uuid).
 		Update("password", user.Password).Error; err != nil {
 		slog.Error("failed to update in database",
 			"error", err.Error())
@@ -150,6 +200,7 @@ func (u *UserRepositor) UpdateUser(ctx context.Context, user *models.User) error
 	userKey := fmt.Sprintf("user:%s", user.Uuid.String())
 	u.Cache.Delete(fmt.Sprintf("user:email:%s", user.Email))
 	u.Cache.Delete(userKey)
+	u.Cache.Delete("user:all:*")
 
 	return nil
 }

@@ -24,8 +24,9 @@ func (u *UserHandler) RegisterRoutes(r *chi.Mux) {
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth)
+		r.Get("/users", u.GetListsUsersHandler)
 		r.Get("/users/{id}", u.GetUserHandler)
-		r.Put("/users/{id}", u.UpdateUsereHandler)
+		r.Put("/users/{id}/update", u.UpdateUsereHandler)
 		r.Put("/users/{id}/email", u.ChangeUserEmailHandler)
 		r.Put("/users/{id}/ChangePassword", u.ChangeUserPasswordHandler)
 		r.Delete("/users/{id}", u.DeleteUserHandler)

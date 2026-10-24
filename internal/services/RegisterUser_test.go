@@ -25,7 +25,7 @@ func TestRegisterUser(t *testing.T) {
 
 		user, err := mock.RegisterUser(t.Context(),
 			"admin@mail.ru",
-			"123456789",
+			"123456789!A",
 			"+79995844443",
 			time.Date(1993, 1, 1, 0, 0, 0, 0, time.UTC),
 			"767289",
