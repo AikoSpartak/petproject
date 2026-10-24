@@ -24,7 +24,7 @@ func TestLoginUser(t *testing.T) {
 
 		mockRepository := mocks.NewMockUserRepository(ctrl)
 
-		hashPassowrd, _ := bcrypt.GenerateFromPassword([]byte("12345678"), bcrypt.DefaultCost)
+		hashPassowrd, _ := bcrypt.GenerateFromPassword([]byte("12345678!A"), bcrypt.DefaultCost)
 
 		mockRepository.EXPECT().GetByEmail(gomock.Any(), "admin@mail.ru").
 			Return(&models.User{
@@ -37,7 +37,6 @@ func TestLoginUser(t *testing.T) {
 		mockRepository.EXPECT().DeleteAccessToken(userID)
 		mockRepository.EXPECT().DeleteRefreshToken(userID)
 
-		mockRepository.EXPECT().SaveAccessToken(userID, gomock.Any())
 		mockRepository.EXPECT().SaveRefreshToken(userID, gomock.Any())
 
 		mock := &UserService{UserRepositor: mockRepository}
@@ -45,7 +44,7 @@ func TestLoginUser(t *testing.T) {
 		accessToken, refreshToken, user, err := mock.LoginUser(
 			t.Context(),
 			"admin@mail.ru",
-			"12345678")
+			"12345678!A")
 
 		require.NoError(t, err)
 		require.NotNil(t, user)

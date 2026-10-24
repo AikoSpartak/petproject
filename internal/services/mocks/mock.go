@@ -86,6 +86,21 @@ func (mr *MockUserSrvicesMockRecorder) DeleteAccountUser(ctx, id any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccountUser", reflect.TypeOf((*MockUserSrvices)(nil).DeleteAccountUser), ctx, id)
 }
 
+// GetListsUsers mocks base method.
+func (m *MockUserSrvices) GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetListsUsers", ctx, active, limit, offset, role, country, orderBy)
+	ret0, _ := ret[0].([]*models.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetListsUsers indicates an expected call of GetListsUsers.
+func (mr *MockUserSrvicesMockRecorder) GetListsUsers(ctx, active, limit, offset, role, country, orderBy any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListsUsers", reflect.TypeOf((*MockUserSrvices)(nil).GetListsUsers), ctx, active, limit, offset, role, country, orderBy)
+}
+
 // GetUser mocks base method.
 func (m *MockUserSrvices) GetUser(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	m.ctrl.T.Helper()

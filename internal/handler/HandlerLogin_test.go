@@ -21,7 +21,7 @@ func TestLoginUserHandler(t *testing.T) {
 
 	mockservices.EXPECT().LoginUser(
 		gomock.Any(),
-		"qwer ",
+		"qwerqwer@mail.ru",
 		"qwerqwerqwer").Return(
 		"testaccesstoken",
 		"testrefreshtoken",
@@ -40,7 +40,7 @@ func TestLoginUserHandler(t *testing.T) {
 		http.MethodPost,
 		"/login",
 		strings.NewReader(`{
-		"login": "qwerqwer@mail.ru",
+		"email": "qwerqwer@mail.ru",
 		"password": "qwerqwerqwer"}`),
 	)
 

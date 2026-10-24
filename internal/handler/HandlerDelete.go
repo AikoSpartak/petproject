@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"arch/internal/handler/RequestStruct"
 	"arch/internal/handler/ResponseStruct"
 	"arch/internal/middleware"
 	"arch/internal/models"
@@ -14,16 +13,6 @@ import (
 )
 
 func (u *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-
-	var req RequestStruct.DeleteUserRequest
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		slog.Error("mail parsing error when requesting",
-			"error", err.Error())
-		http.Error(w, "invalid request id", http.StatusBadRequest)
-		return
-	}
 
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)

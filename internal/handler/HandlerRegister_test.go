@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -19,9 +20,9 @@ func TestRegisterUserHandler(t *testing.T) {
 
 	mockServices.EXPECT().RegisterUser(gomock.Any(),
 		"qwerqwer@mail.ru",
-		"qwerqwerqwer",
+		"qwerqwerqwer!A",
 		"+79123265661",
-		"1993-16-11",
+		time.Date(1993, 1, 1, 0, 0, 0, 0, time.UTC),
 		"768983",
 		"Russia").Return(
 		&models.User{
@@ -41,9 +42,9 @@ func TestRegisterUserHandler(t *testing.T) {
 		"/register",
 		strings.NewReader(`{
 		"email": "qwerqwer@mail.ru",
-		"password": "qwerqwerqwer",
+		"password": "qwerqwerqwer!A",
 		"phonenumber": "+79123265661",
-		"datebirthday": "1993-16-11",
+		"datebirthday": "1993-01-01T00:00:00Z",
 		"passport": "768983",
 		"country": "Russia"}`),
 	)

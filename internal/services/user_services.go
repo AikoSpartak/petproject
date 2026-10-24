@@ -29,6 +29,7 @@ type UserSrvices interface {
 	RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error)
 	LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error)
 	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
+	GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error)
 	UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
 	ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
 	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
@@ -149,18 +150,28 @@ func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, 
 
 	user, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
-		slog.Warn("couldn't find the user",
+		slog.Error("couldn't find the user",
 			"id", id,
 			"error", err.Error())
 		return nil, err
 	}
 
 	if user == nil {
-		slog.Warn("user not found", "id", id)
+		slog.Error("user not found", "id", id)
 		return nil, ErrUserNotFound
 	}
 
 	return user, nil
+}
+
+func (u *UserService) GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error) {
+
+	listsUser, err := u.UserRepositor.GetAllUsers(ctx, active, limit, offset, orderBy, role, country)
+	if err != nil {
+		return nil, err
+	}
+
+	return listsUser, nil
 }
 
 func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
@@ -229,7 +240,7 @@ func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmai
 
 	userEmail.Email = newEmail
 
-	err = u.UserRepositor.UpdateUser(ctx, userEmail)
+	err = u.UserRepositor.UpdateUserEmail(ctx, userEmail)
 	if err != nil {
 		slog.Error("couldn't update data",
 			"error", err.Error(),
@@ -274,7 +285,7 @@ func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldP
 
 	user.Password = hashPass
 
-	err = u.UserRepositor.UpdateUser(ctx, user)
+	err = u.UserRepositor.UpdateUserPassword(ctx, user)
 	if err != nil {
 		return err
 	}

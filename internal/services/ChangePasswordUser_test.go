@@ -15,8 +15,8 @@ func TestChangePasswordUser(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		userID := uuid.New()
-		oldPassword := "123456789"
-		newPassword := "987654321"
+		oldPassword := "123456789!A"
+		newPassword := "987654321!A"
 
 		t.Setenv("JWT_KEY", "test-secret-key-for-jwt")
 		t.Setenv("SECRET_KEY", "test-secret-key-for-refresh")
