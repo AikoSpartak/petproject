@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"arch/internal/models"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -30,14 +31,14 @@ func (u *UserHandler) GetListsUsersHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	listsUser, err := u.UserServices.GetListsUsers(
-		r.Context(),
-		false,
-		limitInt,
-		0,
-		role,
-		country,
-		"")
+	filter := models.UsersFiltres{
+		Limit:   limitInt,
+		Role:    role,
+		Country: country,
+	}
+
+	listsUser, err := u.UserServices.GetListsUsers(r.Context(), filter)
+
 	if err != nil {
 		http.Error(w, "zero 1", http.StatusInternalServerError)
 		return

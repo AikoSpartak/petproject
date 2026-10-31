@@ -87,18 +87,18 @@ func (mr *MockUserSrvicesMockRecorder) DeleteAccountUser(ctx, id any) *gomock.Ca
 }
 
 // GetListsUsers mocks base method.
-func (m *MockUserSrvices) GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error) {
+func (m *MockUserSrvices) GetListsUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetListsUsers", ctx, active, limit, offset, role, country, orderBy)
+	ret := m.ctrl.Call(m, "GetListsUsers", ctx, filter)
 	ret0, _ := ret[0].([]*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetListsUsers indicates an expected call of GetListsUsers.
-func (mr *MockUserSrvicesMockRecorder) GetListsUsers(ctx, active, limit, offset, role, country, orderBy any) *gomock.Call {
+func (mr *MockUserSrvicesMockRecorder) GetListsUsers(ctx, filter any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListsUsers", reflect.TypeOf((*MockUserSrvices)(nil).GetListsUsers), ctx, active, limit, offset, role, country, orderBy)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetListsUsers", reflect.TypeOf((*MockUserSrvices)(nil).GetListsUsers), ctx, filter)
 }
 
 // GetUser mocks base method.
@@ -149,16 +149,16 @@ func (mr *MockUserSrvicesMockRecorder) RegisterUser(ctx, login, password, phone,
 }
 
 // UpdateUser mocks base method.
-func (m *MockUserSrvices) UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
+func (m *MockUserSrvices) UpdateUser(ctx context.Context, id uuid.UUID, updateMap map[string]any) (*models.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, name, phone)
+	ret := m.ctrl.Call(m, "UpdateUser", ctx, id, updateMap)
 	ret0, _ := ret[0].(*models.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateUser indicates an expected call of UpdateUser.
-func (mr *MockUserSrvicesMockRecorder) UpdateUser(ctx, id, name, phone any) *gomock.Call {
+func (mr *MockUserSrvicesMockRecorder) UpdateUser(ctx, id, updateMap any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserSrvices)(nil).UpdateUser), ctx, id, name, phone)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUser", reflect.TypeOf((*MockUserSrvices)(nil).UpdateUser), ctx, id, updateMap)
 }

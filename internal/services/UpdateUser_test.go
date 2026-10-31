@@ -24,17 +24,21 @@ func TestUpdateUser(t *testing.T) {
 			GetByUserId(gomock.Any(), userID).
 			Return(&models.User{
 				Uuid:        userID,
-				FullName:    "gena",
-				PhoneNumber: "+79123265661",
-			}, nil)
+				FullName:    "aleksandr",
+				PhoneNumber: "+799995844443",
+			}, nil).
+			Times(2)
 
 		mockRepository.EXPECT().
-			UpdateUser(gomock.Any(), gomock.Any()).
+			UpdateUser(gomock.Any(), userID, gomock.Any()).
 			Return(nil)
 
 		srv := &UserService{UserRepositor: mockRepository}
 
-		user, err := srv.UpdateUser(t.Context(), userID, "aleksandr", "+799995844443")
+		user, err := srv.UpdateUser(t.Context(), userID, map[string]interface{}{
+			"full_name":    "aleksandr",
+			"phone_number": "+799995844443",
+		})
 
 		require.NoError(t, err)
 		require.NotNil(t, user)
@@ -43,7 +47,6 @@ func TestUpdateUser(t *testing.T) {
 	})
 
 	t.Run("user not found", func(t *testing.T) {
-
 		userID := uuid.New()
 
 		ctrl := gomock.NewController(t)
@@ -55,9 +58,13 @@ func TestUpdateUser(t *testing.T) {
 			GetByUserId(gomock.Any(), userID).
 			Return(nil, nil)
 
-		mock := &UserService{UserRepositor: mockRepository}
+		srv := &UserService{UserRepositor: mockRepository}
 
-		user, err := mock.UpdateUser(t.Context(), userID, "gena", "asd@mail.ru")
+		updateMap := map[string]interface{}{
+			"full_name": "gena",
+		}
+
+		user, err := srv.UpdateUser(t.Context(), userID, updateMap)
 
 		require.Error(t, err)
 		require.Nil(t, user)

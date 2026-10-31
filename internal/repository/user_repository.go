@@ -19,9 +19,9 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy, role, country string) ([]*models.User, error)
+	GetAllUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error)
 
-	UpdateUser(ctx context.Context, user *models.User) error
+	UpdateUser(ctx context.Context, id uuid.UUID, userUpdate map[string]interface{}) error
 	UpdateUserEmail(ctx context.Context, user *models.User) error
 	UpdateUserPassword(ctx context.Context, user *models.User) error
 
@@ -38,7 +38,7 @@ type UserRepositor struct {
 	Cache *cache.Cache
 }
 
-const ttlAccess = 24 * time.Hour
+const ttlAccess = 15 * time.Minute
 
 const maxLimit = 50
 
@@ -75,17 +75,17 @@ func (u *UserRepositor) GetByUserId(ctx context.Context, id uuid.UUID) (*models.
 	return &user, nil
 }
 
-func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, offset int, orderBy, role, country string) ([]*models.User, error) {
+func (u *UserRepositor) GetAllUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error) {
 
-	if limit <= 0 || limit > 50 {
-		limit = maxLimit
+	if filter.Limit <= 0 || filter.Limit > 50 {
+		filter.Limit = maxLimit
 	}
 
-	if offset < 0 {
-		offset = 0
+	if filter.Offset < 0 {
+		filter.Offset = 0
 	}
 
-	key := fmt.Sprintf("users:all:active:%v:limit:%d:offset:%d:orderBy:%s:role%s:country%s", active, limit, offset, orderBy, role, country)
+	key := fmt.Sprintf("users:all:%v", filter)
 
 	if val, found := u.Cache.Get(key); found {
 		return val.([]*models.User), nil
@@ -95,30 +95,27 @@ func (u *UserRepositor) GetAllUsers(ctx context.Context, active bool, limit, off
 
 	query := u.DB.WithContext(ctx)
 
-	if active {
-		query = query.Where("active = ?", true)
+	if filter.Active {
+		query = query.Where("Active = ?", true)
 	}
 
-	if role != "" {
-		query = query.Where("role = ?", role)
+	if filter.Role != "" {
+		query = query.Where("Role = ?", filter.Role)
 	}
 
-	if country != "" {
-		query = query.Where("country = ?", country)
+	if filter.Country != "" {
+		query = query.Where("Country = ?", filter.Country)
 	}
 
 	query = query.
-		Order(orderBy).
-		Limit(limit).
-		Offset(offset)
+		Order(filter.OrderBy).
+		Limit(filter.Limit).
+		Offset(filter.Offset)
 
 	if err := query.Find(&users).Error; err != nil {
 		slog.Error("User not found",
 			"error", err.Error(),
-			"active", active,
-			"limit", limit,
-			"offset", offset,
-			"orderby", orderBy)
+			"filter", filter)
 		return nil, err
 	}
 
@@ -150,18 +147,17 @@ func (u *UserRepositor) GetByEmail(ctx context.Context, email string) (*models.U
 	return &user, nil
 }
 
-func (u *UserRepositor) UpdateUser(ctx context.Context, user *models.User) error {
+func (u *UserRepositor) UpdateUser(ctx context.Context, id uuid.UUID, userUpdate map[string]interface{}) error {
 
 	if err := u.DB.WithContext(ctx).
 		Model(&models.User{}).
-		Where("id = ?", user.Uuid).
-		Update("full_name", user.FullName).
-		Update("phone_number", user.PhoneNumber).Error; err != nil {
+		Where("id = ?", id.String()).
+		Updates(userUpdate).Error; err != nil {
 		slog.Error("failed to update in database")
 		return err
 	}
 
-	userKey := fmt.Sprintf("user:%s", user.Uuid.String())
+	userKey := fmt.Sprintf("user:%s", id.String())
 	u.Cache.Delete(userKey)
 	u.Cache.Delete("user:all:*")
 

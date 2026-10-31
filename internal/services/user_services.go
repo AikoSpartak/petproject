@@ -28,9 +28,12 @@ var (
 type UserSrvices interface {
 	RegisterUser(ctx context.Context, login, password, phone string, datebirthday time.Time, passport, country string) (*models.User, error)
 	LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error)
+
 	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
-	GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error)
-	UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error)
+	GetListsUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error)
+
+	UpdateUser(ctx context.Context, id uuid.UUID, updateMap map[string]interface{}) (*models.User, error)
+
 	ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error)
 	ChangePasswordUser(ctx context.Context, id uuid.UUID, oldPassword, newPassword string) error
 	DeleteAccountUser(ctx context.Context, id uuid.UUID) error
@@ -164,17 +167,12 @@ func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, 
 	return user, nil
 }
 
-func (u *UserService) GetListsUsers(ctx context.Context, active bool, limit, offset int, role, country, orderBy string) ([]*models.User, error) {
+func (u *UserService) GetListsUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error) {
 
-	listsUser, err := u.UserRepositor.GetAllUsers(ctx, active, limit, offset, orderBy, role, country)
-	if err != nil {
-		return nil, err
-	}
-
-	return listsUser, nil
+	return u.UserRepositor.GetAllUsers(ctx, filter)
 }
 
-func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone string) (*models.User, error) {
+func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, updateMap map[string]interface{}) (*models.User, error) {
 
 	user, err := u.UserRepositor.GetByUserId(ctx, id)
 	if err != nil {
@@ -184,16 +182,17 @@ func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone 
 		return nil, ErrUserNotFound
 	}
 
+	if len(updateMap) == 0 {
+		return user, nil
+	}
+
 	if user == nil {
 		slog.Warn("user not found",
 			"id", id)
 		return nil, ErrUserNotFound
 	}
 
-	user.FullName = name
-	user.PhoneNumber = phone
-
-	err = u.UserRepositor.UpdateUser(ctx, user)
+	err = u.UserRepositor.UpdateUser(ctx, id, updateMap)
 	if err != nil {
 		slog.Error("couldn't update user",
 			"id", id,
@@ -201,7 +200,11 @@ func (u *UserService) UpdateUser(ctx context.Context, id uuid.UUID, name, phone 
 		return nil, err
 	}
 
-	return user, nil
+	updated, err := u.UserRepositor.GetByUserId(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 func (u *UserService) ChangeEmailUser(ctx context.Context, id uuid.UUID, newEmail string) (*models.User, error) {
@@ -289,6 +292,8 @@ func (u *UserService) ChangePasswordUser(ctx context.Context, id uuid.UUID, oldP
 	if err != nil {
 		return err
 	}
+
+	u.UserRepositor.DeleteAccessToken(id)
 
 	return nil
 

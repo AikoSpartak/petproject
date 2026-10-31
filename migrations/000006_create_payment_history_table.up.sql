@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS payment (
+    id UUID PRIMARY KEY,
+    finance_id UUID NOT NULL REFERENCES finance(id),
+    amount NUMERIC(14,2) NOT NULL,
+    paid_at DATE NOT NULL DEFAULT CURRENT_DATE
+);

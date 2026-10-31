@@ -25,8 +25,8 @@ type GetPrfileRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Name  string `json:"FullName"`
-	Phone string `json:"PhoneNumber"`
+	Name  *string `json:"FullName"`
+	Phone *string `json:"PhoneNumber"`
 }
 
 type ChangeEmailRequest struct {

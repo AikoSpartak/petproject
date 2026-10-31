@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS branches (
+    id UUID PRIMARY KEY 
+)

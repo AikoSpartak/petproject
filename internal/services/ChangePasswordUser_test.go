@@ -37,8 +37,11 @@ func TestChangePasswordUser(t *testing.T) {
 			}, nil)
 
 		mockRepository.EXPECT().
-			UpdateUser(gomock.Any(), gomock.Any()).
+			UpdateUserPassword(gomock.Any(), gomock.Any()).
 			Return(nil)
+
+		mockRepository.EXPECT().
+			DeleteAccessToken(gomock.Any())
 
 		mock := &UserService{UserRepositor: mockRepository}
 
