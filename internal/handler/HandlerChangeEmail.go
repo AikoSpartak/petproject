@@ -53,7 +53,7 @@ func (u *UserHandler) ChangeUserEmailHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	w.Header().Set("Content-type", "json-application")
+	w.Header().Set("Content-type", "application-json")
 	w.WriteHeader(http.StatusOK)
 
 	response := ResponseStruct.ChangeEmailResponse{

@@ -15,7 +15,7 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-const ttlAccessToken = 24 * time.Hour
+const ttlAccessToken = 15 * time.Minute
 const ttlRefreshToken = 3 * 24 * time.Hour
 
 func getJWT() ([]byte, error) {

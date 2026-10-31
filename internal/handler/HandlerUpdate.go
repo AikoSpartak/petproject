@@ -27,6 +27,16 @@ func (u *UserHandler) UpdateUsereHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	updateUser := map[string]interface{}{}
+
+	if req.Name != nil && *req.Name != "" {
+		updateUser["full_name"] = *req.Name
+	}
+
+	if req.Phone != nil && *req.Phone != "" {
+		updateUser["phone_number"] = *req.Phone
+	}
+
 	idStr := chi.URLParam(r, "id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -47,7 +57,7 @@ func (u *UserHandler) UpdateUsereHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, err := u.UserServices.UpdateUser(r.Context(), id, req.Name, req.Phone)
+	user, err := u.UserServices.UpdateUser(r.Context(), id, updateUser)
 	if err != nil {
 		slog.Error("error updating the user during the request",
 			"error", err.Error())

@@ -37,7 +37,7 @@ func TestChangeEmailUser(t *testing.T) {
 			}, nil)
 
 		mockRepository.EXPECT().
-			UpdateUser(gomock.Any(), gomock.Any()).
+			UpdateUserEmail(gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		mock := &UserService{UserRepositor: mockRepository}

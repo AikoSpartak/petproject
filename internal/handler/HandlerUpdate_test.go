@@ -25,8 +25,7 @@ func TestUpdateUserHandler(t *testing.T) {
 		UpdateUser(
 			gomock.Any(),
 			userID,
-			"Alexander",
-			"+79123265661",
+			gomock.Any(),
 		).
 		Return(
 			&models.User{
@@ -47,8 +46,8 @@ func TestUpdateUserHandler(t *testing.T) {
 		http.MethodPut,
 		"/users/"+userID.String(),
 		strings.NewReader(`{
-			"name": "Alexander",
-			"phone": "+79123265661"
+			"FullName": "Alexander",
+			"Phonenumber": "+79123265661"
 		}`),
 	)
 
