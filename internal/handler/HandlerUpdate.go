@@ -29,12 +29,12 @@ func (u *UserHandler) UpdateUsereHandler(w http.ResponseWriter, r *http.Request)
 
 	updateUser := map[string]interface{}{}
 
-	if req.Name != nil && *req.Name != "" {
-		updateUser["full_name"] = *req.Name
+	if req.Name != "" {
+		updateUser["full_name"] = req.Name
 	}
 
-	if req.Phone != nil && *req.Phone != "" {
-		updateUser["phone_number"] = *req.Phone
+	if req.Phone != "" {
+		updateUser["phone_number"] = req.Phone
 	}
 
 	idStr := chi.URLParam(r, "id")

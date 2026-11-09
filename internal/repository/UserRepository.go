@@ -13,13 +13,13 @@ import (
 	"gorm.io/gorm"
 )
 
-//go:generate mockgen -source=user_repository.go -destination=mocks/mock.go
+//go:generate mockgen -source=UserRepository.go -destination=mocks/mock.go
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetByUserId(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
-	GetAllUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error)
+	GetAllUsers(ctx context.Context, filter UsersFiltres) ([]*models.User, error)
 
 	UpdateUser(ctx context.Context, id uuid.UUID, userUpdate map[string]interface{}) error
 	UpdateUserEmail(ctx context.Context, user *models.User) error
@@ -41,6 +41,15 @@ type UserRepositor struct {
 const ttlAccess = 15 * time.Minute
 
 const maxLimit = 50
+
+type UsersFiltres struct {
+	Active  bool
+	Limit   int
+	Offset  int
+	Role    string
+	Country string
+	OrderBy string
+}
 
 func (u *UserRepositor) CreateUser(ctx context.Context, user *models.User) error {
 
@@ -75,7 +84,7 @@ func (u *UserRepositor) GetByUserId(ctx context.Context, id uuid.UUID) (*models.
 	return &user, nil
 }
 
-func (u *UserRepositor) GetAllUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error) {
+func (u *UserRepositor) GetAllUsers(ctx context.Context, filter UsersFiltres) ([]*models.User, error) {
 
 	if filter.Limit <= 0 || filter.Limit > 50 {
 		filter.Limit = maxLimit
