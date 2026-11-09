@@ -42,9 +42,9 @@ func main() {
 
 	defer sqlDB.Close()
 
-	if err := db.Migrate(); err != nil {
-		log.Fatal(err)
-	}
+	// if err := db.Migrate(); err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	cacheUser := cache.New(5*time.Minute, 10*time.Minute)
 

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"arch/internal/models"
+	"arch/internal/repository"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -31,7 +31,7 @@ func (u *UserHandler) GetListsUsersHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	filter := models.UsersFiltres{
+	filter := repository.UsersFiltres{
 		Limit:   limitInt,
 		Role:    role,
 		Country: country,

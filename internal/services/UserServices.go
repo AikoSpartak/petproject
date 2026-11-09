@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate mockgen -source=user_services.go -destination=mocks/mock.go
+//go:generate mockgen -source=UserServices.go -destination=mocks/mock.go
 
 var (
 	ErrorSenEmail   = errors.New("email format error")
@@ -30,7 +30,7 @@ type UserSrvices interface {
 	LoginUser(ctx context.Context, login, password string) (string, string, *models.User, error)
 
 	GetUser(ctx context.Context, id uuid.UUID) (*models.User, error)
-	GetListsUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error)
+	GetListsUsers(ctx context.Context, filter repository.UsersFiltres) ([]*models.User, error)
 
 	UpdateUser(ctx context.Context, id uuid.UUID, updateMap map[string]interface{}) (*models.User, error)
 
@@ -167,7 +167,7 @@ func (u *UserService) GetUser(ctx context.Context, id uuid.UUID) (*models.User, 
 	return user, nil
 }
 
-func (u *UserService) GetListsUsers(ctx context.Context, filter models.UsersFiltres) ([]*models.User, error) {
+func (u *UserService) GetListsUsers(ctx context.Context, filter repository.UsersFiltres) ([]*models.User, error) {
 
 	return u.UserRepositor.GetAllUsers(ctx, filter)
 }
