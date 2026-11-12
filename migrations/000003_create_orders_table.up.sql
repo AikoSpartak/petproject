@@ -3,12 +3,12 @@
 CREATE TABLE IF NOT EXISTS orders (
     uuid UUID PRIMARY KEY,
     owner_uuid   UUID NOT NULL,
-    equipment_uuid  VARCHAR[] DEFAULT '{}',
+    equipment_uuid  VARCHAR[] DEFAULT [],
     branch_uuid UUID NOT NULL,
     seller_uuid UUID NOT NULL,
     created_at DATE NOT NULL,
-    total_sum NUMERIC(10, 2),
-    is_paid BOOLEAN DEFAULT false
+    total_amount NUMERIC(10, 2) NOT NULL,
+    paid BOOLEAN DEFAULT false
 );
 
 CREATE INDEX idx_equipment_uuid ON orders (equipment_uuid);

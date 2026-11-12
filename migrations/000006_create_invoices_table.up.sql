@@ -1,11 +1,8 @@
 CREATE TABLE IF NOT EXISTS invoices (
     uuid UUID PRIMARY KEY,
-    users_uuid UUID NOT NULL,
-    created_at DATE NOT NULL, 
-    equipment_uuid VARCHAR[] DEFAULT '{}',
-    total_sum NUMERIC(10, 2) NOT NULL,
-    change NUMERIC(10, 2) NOT NULL
+    user_uuid UUID NOT NULL,
+    amount_to_pay NUMERIC(10, 2) NOT NULL CHECK (amount_to_pay > 0),
+    paid BOOLEAN NOT NULL DEFAULT false,
 )
 
-CREATE INDEX idx_created_at ON invoices (created_at);
-CREATE INDEX idx_total_sum ON invoices (total_sum);
+CREATE INDEX idx_user_uuid ON invoices (user_uuid);
