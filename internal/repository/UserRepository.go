@@ -220,8 +220,8 @@ func (u *UserRepositor) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	}
 
 	userKey := fmt.Sprintf("user:%s", id.String())
-	u.Cache.Delete(userKey)
 
+	u.Cache.Delete(userKey)
 	u.Cache.Delete("user:all:*")
 
 	return nil
