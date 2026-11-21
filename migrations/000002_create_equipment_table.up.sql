@@ -1,12 +1,9 @@
--- Добавить инекдса на: 
--- статус, овнер, бранч, категория, модель, бренд, сериал намбер
-
 CREATE TABLE IF NOT EXISTS equipment (
     uuid              UUID PRIMARY KEY,
     status            VARCHAR(256) DEFAULT 'На складе',
-    owner_uuid        UUID NULLABLE,
-    branch_uuid       UUID NULLABLE,
-    description       TEXT NULLABLE, 
+    owner_uuid        UUID,
+    branch_uuid       UUID,
+    description       TEXT, 
     category          VARCHAR(256) NOT NULL,
     brand             VARCHAR(256) NOT NULL,
     model             VARCHAR(256) NOT NULL,
@@ -22,4 +19,4 @@ CREATE INDEX idx_branch_uuid ON equipment (branch_uuid);
 CREATE INDEX idx_category ON equipment (category);
 CREATE INDEX idx_model ON equipment (model);
 CREATE INDEX idx_brand ON equipment (brand);
-CREATE INDEX idx_serial_number equipment (serial_number); 
+CREATE INDEX idx_serial_number ON equipment (serial_number); 
