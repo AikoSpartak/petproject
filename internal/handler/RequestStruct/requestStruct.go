@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
 type RegisterRequest struct {
@@ -40,4 +42,13 @@ type ChangePasswordRequest struct {
 
 type DeleteUserRequest struct {
 	Email string `json:"Email"`
+}
+
+type OrdersRequest struct {
+	EquipmentUuid pq.StringArray  `json:"equipment_uuid"`
+	BranchUuid    uuid.UUID       `json:"branch_uuid" `
+	SellerUuid    uuid.UUID       `json:"seller_uuid" `
+	InvoicesUuid  uuid.UUID       `json:"invoices_uuid" `
+	TotalAmount   decimal.Decimal `json:"total_amount"`
+	IsPaid        bool            `json:"is_paid"`
 }

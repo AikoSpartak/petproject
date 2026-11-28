@@ -4,9 +4,7 @@ import (
 	"arch/internal/models"
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
@@ -16,9 +14,10 @@ import (
 type OrderRepository interface {
 	CreateOrder(ctx context.Context, order *models.Orders) error
 
-	GetOwnerOrder(ctx context.Context, uuid uuid.UUID) (*models.Orders, error)
+	GetOrder(ctx context.Context, uuid uuid.UUID) (*models.Orders, error)
+	GetListOrder(ctx context.Context, filter Orderfilter) ([]*models.Orders, error)
 
-	UpdateOrder(ctx context.Context, order *models.Orders) error
+	UpdateOrder(ctx context.Context, uuid uuid.UUID, orderUpdate map[string]interface{}) error
 
 	DeleteOrder(ctx context.Context, uuid uuid.UUID) error
 }
@@ -27,6 +26,18 @@ type OrderRepositoryStruct struct {
 	DB    *gorm.DB
 	Cache *cache.Cache
 }
+
+type Orderfilter struct {
+	OwnerUuid    string
+	Branchuuid   string
+	SellerUuid   string
+	InvoicesUuid string
+	Limit        int
+	Offset       int
+	OrderBy      string
+}
+
+const maxLimitOrder = 20
 
 func (o *OrderRepositoryStruct) CreateOrder(ctx context.Context, order *models.Orders) error {
 
@@ -41,10 +52,6 @@ func (o *OrderRepositoryStruct) CreateOrder(ctx context.Context, order *models.O
 
 func (o *OrderRepositoryStruct) GetOrder(ctx context.Context, uuid uuid.UUID) (*models.Orders, error) {
 
-	if val, found := o.Cache.Get(uuid.String()); found {
-		return val.(*models.Orders), nil
-	}
-
 	var order models.Orders
 
 	err := o.DB.WithContext(ctx).
@@ -58,9 +65,57 @@ func (o *OrderRepositoryStruct) GetOrder(ctx context.Context, uuid uuid.UUID) (*
 		return nil, err
 	}
 
-	o.Cache.Set(uuid.String(), &order, 5*time.Minute)
-
 	return &order, nil
+}
+
+func (o *OrderRepositoryStruct) GetListOrder(ctx context.Context, filter Orderfilter) ([]*models.Orders, error) {
+
+	if filter.Limit <= 0 || filter.Limit > 20 {
+		filter.Limit = maxLimitOrder
+	}
+
+	if filter.Offset < 0 {
+		filter.Offset = 0
+	}
+
+	var orders []*models.Orders
+
+	query := o.DB.WithContext(ctx)
+
+	if filter.OwnerUuid != "" {
+		query = query.Where("owner_uuid = ?", filter.OwnerUuid)
+		query = query.Preload("Owner")
+	}
+
+	if filter.Branchuuid != "" {
+		query = query.Where("branch_uuid = ?", filter.Branchuuid)
+		query = query.Preload("Branch")
+	}
+
+	if filter.SellerUuid != "" {
+		query = query.Where("seller_uuid = ?", filter.SellerUuid)
+		query = query.Preload("Seller")
+	}
+
+	if filter.InvoicesUuid != "" {
+		query = query.Where("invoices_uuid = ?", filter.InvoicesUuid)
+		query = query.Preload("Invoices")
+	}
+
+	query = query.
+		Order(filter.OrderBy).
+		Limit(filter.Limit).
+		Offset(filter.Offset)
+
+	if err := query.Find(&orders).Error; err != nil {
+		slog.Error("order not found",
+			"error", err.Error(),
+			"filter", filter)
+		return nil, err
+	}
+
+	return orders, nil
+
 }
 
 func (o *OrderRepositoryStruct) UpdateOrder(ctx context.Context, uuid uuid.UUID, orderUpdate map[string]interface{}) error {
@@ -74,9 +129,6 @@ func (o *OrderRepositoryStruct) UpdateOrder(ctx context.Context, uuid uuid.UUID,
 		return err
 	}
 
-	o.Cache.Delete(uuid.String())
-	o.Cache.Delete("user:all:*")
-
 	return nil
 
 }
@@ -84,15 +136,12 @@ func (o *OrderRepositoryStruct) UpdateOrder(ctx context.Context, uuid uuid.UUID,
 func (o *OrderRepositoryStruct) DeleteOrder(ctx context.Context, uuid uuid.UUID) error {
 
 	if err := o.DB.WithContext(ctx).
-		Model(&models.Orders{}).
-		Delete("uuid = ?", uuid.String()).Error; err != nil {
+		Where("uuid = ?", uuid).
+		Delete(&models.Orders{}).Error; err != nil {
 		slog.Error("failed delete order",
 			"error", err.Error())
+		return err
 	}
-
-	orderKey := fmt.Sprintf("user:%s", uuid.String())
-	o.Cache.Delete(orderKey)
-	o.Cache.Delete("user:all:*")
 
 	return nil
 
