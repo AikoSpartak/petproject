@@ -13,7 +13,7 @@ type User struct {
 	PhoneNumber  string
 	DateBirthday time.Time
 	Passport     string
-	Password     string
+	Password     string `json:"-"`
 	IsBanned     bool
 	Role         string
 	Country      string

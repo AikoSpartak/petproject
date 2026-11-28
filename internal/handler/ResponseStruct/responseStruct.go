@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
+	"github.com/shopspring/decimal"
 )
 
 type ResponseRegister struct {
@@ -47,5 +49,30 @@ type ChangePasswordResponse struct {
 }
 
 type DeleteResponse struct {
+	Message string `json:"Message"`
+}
+
+type OrdersResponse struct {
+	OwnerUuid     uuid.UUID       `json:"Uuid"`
+	EquipmentUuid pq.StringArray  `json:"Equipment"`
+	BranchUuid    uuid.UUID       `json:"Branch"`
+	SellerUuid    uuid.UUID       `json:"Seller"`
+	InvoicesUuid  uuid.UUID       `json:"Invoices"`
+	TotalAmount   decimal.Decimal `json:"Amount"`
+	IsPaid        bool            `json:"IsPaid"`
+}
+
+type GetOrderResponse struct {
+	OrderUuid     uuid.UUID       `json:"OrderUuid"`
+	OwnerUuid     uuid.UUID       `json:"OwnerUuid"`
+	EquipmentUuid pq.StringArray  `json:"Equipment"`
+	BranchUuid    uuid.UUID       `json:"Branch"`
+	SellerUuid    uuid.UUID       `json:"Seller"`
+	InvoicesUuid  uuid.UUID       `json:"Invoices"`
+	TotalAmount   decimal.Decimal `json:"Amount"`
+	IsPaid        bool            `json:"IsPaid"`
+}
+
+type DeleteOrderResponse struct {
 	Message string `json:"Message"`
 }

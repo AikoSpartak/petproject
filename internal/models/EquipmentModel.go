@@ -19,10 +19,10 @@ const (
 )
 
 type Equipment struct {
-	Uuid          uuid.UUID  `gorm:"column:uuid;type:uuid;primaryKey"`
-	Status        Status     `gorm:"column:status;type:varchar(256);default:'На складе'"`
-	OwnerUuid     *uuid.UUID `gorm:"column:owner_uuid;type:uuid"`
-	BranchUuid    *uuid.UUID `gorm:"column:branch_uuid;type:uuid"`
+	Uuid          uuid.UUID
+	Status        Status
+	OwnerUuid     uuid.UUID
+	BranchUuid    uuid.UUID
 	Description   *string
 	Category      string
 	Brand         string
